@@ -1,27 +1,425 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --color-void: #05060a;
+  --color-ink: #0a0c12;
+  --color-panel: #0e1118;
+  --color-edge: rgba(255, 255, 255, 0.07);
+  --color-edge-strong: rgba(255, 255, 255, 0.12);
+  --color-mist: #94a3b8;
+  --color-bloom: #818cf8;
+  --color-bloom-bright: #a5b4fc;
+  --color-cyan: #22d3ee;
+  --color-amber: #fbbf24;
+}
+
+/* ─── iOS / mobile foundation ───────────────────────────────────────────── */
+
+html {
+  height: 100%;
+  /* Prevent iOS text-size adjust after orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
   margin: 0;
-  background-color: #020617;
-  /* A faint glow anchored behind the hero content — pure depth, never bright enough to
-     compete with data. Fixed so it doesn't reflow/scroll with page content. */
-  background-image: radial-gradient(ellipse 600px 400px at 50% -10%, rgba(99, 102, 241, 0.16), transparent 70%);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  font-family: var(--font-sans);
+  font-size: 16px; /* base 16px keeps iOS from auto-zooming focused inputs */
+  line-height: 1.45;
+  color: #e8ecf4;
+  background-color: var(--color-void);
+  /* Fixed backgrounds glitch hard on iOS Safari — paint ambient glow as a layer instead */
+  background-image: none;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  /* Momentum scroll on long pages */
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
 }
 
-/* Shared card surface — layered above the page glow, used by every grouped section. */
+/* Ambient glow layer — scroll-stable on iOS (no background-attachment: fixed) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--color-void);
+  background-image:
+    radial-gradient(ellipse 900px 520px at 15% -8%, rgba(99, 102, 241, 0.22), transparent 55%),
+    radial-gradient(ellipse 700px 480px at 92% 8%, rgba(34, 211, 238, 0.1), transparent 50%),
+    radial-gradient(ellipse 600px 400px at 50% 105%, rgba(129, 140, 248, 0.08), transparent 55%),
+    linear-gradient(180deg, #07080e 0%, var(--color-void) 40%, #04050a 100%);
+}
+
+/* Phone-width column, centered on larger screens / landscape */
+.page {
+  width: 100%;
+  max-width: 28rem; /* ~448px — classic phone content width */
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 100dvh;
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  /* Notch / Dynamic Island clearance */
+  padding-top: max(1.75rem, calc(env(safe-area-inset-top) + 0.75rem));
+  /* Room for floating dock + home indicator */
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.page-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ─── Surfaces ──────────────────────────────────────────────────────────── */
+
 .surface {
-  background-color: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.01) 42%, transparent 100%),
+    rgba(14, 17, 24, 0.78);
+  border: 1px solid var(--color-edge);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35) inset,
+    0 12px 40px -18px rgba(0, 0, 0, 0.65),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  /* Blur is expensive on older iPhones — keep moderate */
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+}
+
+.surface-solid {
+  background: #0e1118;
+  border: 1px solid var(--color-edge);
+  box-shadow:
+    0 12px 40px -18px rgba(0, 0, 0, 0.65),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.surface::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 28%);
+  opacity: 0.55;
+  mask-image: linear-gradient(#000, transparent 70%);
+  -webkit-mask-image: linear-gradient(#000, transparent 70%);
+}
+
+/* ─── Type ──────────────────────────────────────────────────────────────── */
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.display-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.045em;
+  background: linear-gradient(180deg, #ffffff 20%, #c7d2fe 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.display-num-warn {
+  background: linear-gradient(180deg, #fef3c7 10%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ─── Ring / bars ───────────────────────────────────────────────────────── */
+
+.ring-glow {
+  filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.45));
+}
+
+.ring-glow-warn {
+  filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.5));
+}
+
+.bar-fill {
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--bar) 88%, #000) 0%, var(--bar) 100%);
+  box-shadow: 0 0 16px -4px color-mix(in srgb, var(--bar) 55%, transparent);
+}
+
+.bar-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: translateX(-100%);
+  animation: sheen 3.8s ease-in-out infinite;
+}
+
+@keyframes sheen {
+  0%,
+  55% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-rise {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-rise-delay-1 {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
+.animate-rise-delay-2 {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.animate-fade {
+  animation: fade-in 0.35s ease both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+/* ─── Dock (iOS home-indicator aware) ───────────────────────────────────── */
+
+.dock-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+}
+
+.dock {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border-radius: 1.65rem;
+  background: rgba(8, 10, 16, 0.82);
+  border: 1px solid var(--color-edge);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4) inset,
+    0 18px 50px -12px rgba(0, 0, 0, 0.75),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+}
+
+.dock-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 3.15rem; /* ≥ 44pt Apple HIG */
+  border-radius: 1.25rem;
+  color: #64748b;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.dock-tab:active {
+  transform: scale(0.96);
+}
+
+.dock-tab-active {
+  background: linear-gradient(180deg, rgba(129, 140, 248, 0.24), rgba(99, 102, 241, 0.12));
+  color: #c7d2fe;
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.2) inset;
+}
+
+/* ─── Form controls (iOS-safe) ──────────────────────────────────────────── */
+
+.field {
+  border: 1px solid var(--color-edge);
+  background: rgba(255, 255, 255, 0.035);
+  color: #e8ecf4;
+  font-size: 16px; /* critical: <16px triggers Safari auto-zoom */
+  line-height: 1.3;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0.9rem;
+}
+
+.field:focus {
+  outline: none;
+  border-color: rgba(129, 140, 248, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Native <select> on iOS */
+select.field {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+  min-height: 2.75rem;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #8b95f8 0%, #6366f1 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  min-height: 2.75rem; /* ≥ 44pt when combined with padding */
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 8px 20px -8px rgba(99, 102, 241, 0.7);
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  filter: brightness(0.97);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  filter: none;
+}
+
+/* List rows — full-width finger targets */
+.row-tap {
+  min-height: 3rem;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.row-tap:active {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.rank {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Accessibility / reduced motion ────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-delay-1,
+  .animate-rise-delay-2,
+  .animate-fade,
+  .animate-pulse-soft,
+  .bar-fill::after {
+    animation: none !important;
+  }
+
+  .btn-primary,
+  .dock-tab {
+    transition: none;
+  }
+}
+
+/* Very small phones (SE / Mini) */
+@media (max-width: 374px) {
+  .page {
+    padding-left: max(0.9rem, env(safe-area-inset-left));
+    padding-right: max(0.9rem, env(safe-area-inset-right));
+  }
+
+  .display-num {
+    letter-spacing: -0.03em;
+  }
+}
+
+/* Landscape phones: keep content readable, dock still safe */
+@media (orientation: landscape) and (max-height: 500px) {
+  .page {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom));
+  }
+
+  .dock-tab {
+    min-height: 2.75rem;
+  }
 }

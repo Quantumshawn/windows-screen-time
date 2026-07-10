@@ -28,36 +28,25 @@ export default function App() {
   }
 
   return (
-    <div className="pb-24">
+    <div>
       {view === "today" && <Today onAuthError={handleAuthError} />}
       {view === "history" && <History onAuthError={handleAuthError} />}
       {view === "settings" && <Settings onAuthError={handleAuthError} />}
 
-      <nav
-        className="fixed inset-x-0 bottom-0 border-t border-white/[0.06] bg-slate-950/80 backdrop-blur-lg"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="mx-auto flex max-w-md">
+      <nav className="dock-wrap" aria-label="Main">
+        <div className="dock">
           {TABS.map((tab) => {
             const active = view === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setView(tab.id)}
-                className="flex flex-1 flex-col items-center gap-1 py-2.5"
+                className={`dock-tab ${active ? "dock-tab-active" : ""}`}
+                aria-current={active ? "page" : undefined}
               >
-                <span
-                  className={`flex h-9 w-14 items-center justify-center rounded-full transition-colors ${
-                    active ? "bg-indigo-500/15 text-indigo-400" : "text-slate-500"
-                  }`}
-                >
-                  <tab.Icon className="h-5 w-5" />
-                </span>
-                <span
-                  className={`text-[11px] font-medium transition-colors ${
-                    active ? "text-indigo-400" : "text-slate-500"
-                  }`}
-                >
+                <tab.Icon className={`h-5 w-5 ${active ? "text-indigo-300" : ""}`} />
+                <span className={`text-[10px] font-semibold tracking-wide ${active ? "text-indigo-200" : ""}`}>
                   {tab.label}
                 </span>
               </button>

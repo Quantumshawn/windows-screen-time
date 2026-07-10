@@ -15,17 +15,15 @@ import {
 import { disablePushNotifications, enablePushNotifications, getPushSubscriptionStatus, isPushSupported } from "../push";
 import { BellIcon, CheckIcon, ClockIcon } from "../icons";
 
-// The dataviz skill's validated dark-mode categorical palette (8 fixed hues, fixed order),
-// checked against this dashboard's actual surface color (#020617) — not hand-picked.
 const CATEGORY_COLORS = [
-  "#3987e5", // blue
-  "#199e70", // aqua
-  "#c98500", // yellow
-  "#008300", // green
-  "#9085e9", // violet
-  "#e66767", // red
-  "#d55181", // magenta
-  "#d95926", // orange
+  "#3987e5",
+  "#199e70",
+  "#c98500",
+  "#008300",
+  "#9085e9",
+  "#e66767",
+  "#d55181",
+  "#d95926",
 ];
 
 interface SettingsProps {
@@ -118,38 +116,41 @@ export function Settings({ onAuthError }: SettingsProps) {
   }
 
   async function handleAssignApp(exe: string, categoryId: number | null) {
-    // Optimistic update — the app list re-sorts (uncategorized-first) on next full reload,
-    // but flipping the field immediately keeps the dropdown from feeling laggy on tap.
     setApps((prev) => prev.map((a) => (a.exe === exe ? { ...a, categoryId } : a)));
     await patchApp(exe, { categoryId });
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-500">
-        <span className="animate-pulse text-sm">Loading…</span>
+      <div className="page page-center text-slate-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-9 w-9 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin" />
+          <span className="animate-pulse-soft text-sm text-slate-500">Loading settings…</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-red-400">{error}</p>
-        <button onClick={load} className="rounded-full bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-200">
-          Retry
-        </button>
+      <div className="page page-center text-slate-100">
+        <div className="surface w-full rounded-[1.75rem] px-8 py-8">
+          <p className="text-red-400">{error}</p>
+          <button type="button" onClick={load} className="btn-primary mt-4 w-full rounded-full px-5">
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen px-5 pb-10 pt-8 text-slate-100">
-      <p className="mb-6 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Settings</p>
+    <div className="page text-slate-100">
+      <p className="eyebrow animate-rise mb-6">Settings</p>
 
-      <section className="surface rounded-3xl p-5">
+      <section className="surface animate-rise rounded-[1.75rem] p-4 sm:p-5">
         <SectionHeader icon={<ClockIcon className="h-4 w-4" />} title="Daily limit" />
-        <form onSubmit={handleSaveLimit} className="mt-4 flex items-center gap-2">
+        <form onSubmit={handleSaveLimit} className="mt-4 flex flex-wrap items-center gap-2.5">
           <input
             type="number"
             min="1"
@@ -157,13 +158,10 @@ export function Settings({ onAuthError }: SettingsProps) {
             value={limitInput}
             onChange={(e) => setLimitInput(e.target.value)}
             placeholder="No limit"
-            className="w-24 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-slate-100 outline-none focus:border-indigo-500"
+            className="field num w-28 px-3.5 py-3 text-slate-100"
           />
-          <span className="text-sm text-slate-400">minutes / day</span>
-          <button
-            type="submit"
-            className="ml-auto rounded-full bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-colors active:bg-indigo-600"
-          >
+          <span className="text-[15px] text-slate-400">min / day</span>
+          <button type="submit" className="btn-primary ml-auto rounded-full px-5 text-sm">
             Save
           </button>
         </form>
@@ -174,23 +172,25 @@ export function Settings({ onAuthError }: SettingsProps) {
         </p>
       </section>
 
-      <section className="surface mt-4 rounded-3xl p-5">
+      <section className="surface animate-rise-delay-1 mt-4 rounded-[1.75rem] p-4 sm:p-5">
         <SectionHeader icon={<BellIcon className="h-4 w-4" />} title="Notifications" />
-        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-200">{pushSubscribed ? "Enabled" : "Disabled"}</p>
+        <div className="mt-4 flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-white/[0.04]">
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-medium text-slate-100">
+              {pushSubscribed ? "Enabled" : "Disabled"}
+            </p>
             {!isPushSupported() && <p className="mt-0.5 text-xs text-slate-500">Not supported in this browser.</p>}
             {pushError && <p className="mt-0.5 text-xs text-red-400">{pushError}</p>}
           </div>
           <ToggleSwitch checked={pushSubscribed} disabled={pushBusy || !isPushSupported()} onChange={handleTogglePush} />
         </div>
         <p className="mt-3 text-xs leading-relaxed text-slate-500">
-          On iOS, this only works after adding ScreenTime to your Home Screen — notifications from a Safari tab aren't
-          supported.
+          On iOS, enable notifications only after adding ScreenTime to your Home Screen — Safari tabs can&apos;t receive
+          push.
         </p>
       </section>
 
-      <section className="surface mt-4 rounded-3xl p-5">
+      <section className="surface animate-rise-delay-1 mt-4 rounded-[1.75rem] p-4 sm:p-5">
         <SectionHeader title="Categories" />
         <div className="mt-4 space-y-2">
           {categories.map((cat) =>
@@ -203,13 +203,27 @@ export function Settings({ onAuthError }: SettingsProps) {
                 onCancel={() => setEditingId(null)}
               />
             ) : (
-              <div key={cat.id} className="flex items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3">
-                <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
-                <span className="flex-1 text-sm text-slate-200">{cat.name}</span>
-                <button onClick={() => setEditingId(cat.id)} className="text-xs font-medium text-slate-400">
+              <div
+                key={cat.id}
+                className="flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-3 py-2 ring-1 ring-white/[0.04]"
+              >
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full"
+                  style={{ backgroundColor: cat.color, boxShadow: `0 0 8px ${cat.color}66` }}
+                />
+                <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-slate-100">{cat.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setEditingId(cat.id)}
+                  className="min-h-11 min-w-11 rounded-xl px-2 text-xs font-semibold text-slate-400 active:bg-white/5"
+                >
                   Edit
                 </button>
-                <button onClick={() => handleDeleteCategory(cat.id)} className="text-xs font-medium text-red-400/90">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCategory(cat.id)}
+                  className="min-h-11 min-w-11 rounded-xl px-2 text-xs font-semibold text-red-400/80 active:bg-white/5"
+                >
                   Delete
                 </button>
               </div>
@@ -223,16 +237,19 @@ export function Settings({ onAuthError }: SettingsProps) {
         </div>
       </section>
 
-      <section className="surface mt-4 rounded-3xl p-5">
+      <section className="surface animate-rise-delay-2 mt-4 rounded-[1.75rem] p-4 sm:p-5">
         <SectionHeader title="Apps" />
         <div className="mt-4 space-y-2">
           {apps.map((app) => (
-            <div key={app.exe} className="flex items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3">
-              <span className="flex-1 truncate text-sm text-slate-200">{app.displayName}</span>
+            <div
+              key={app.exe}
+              className="flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-3 py-2 ring-1 ring-white/[0.04]"
+            >
+              <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-slate-100">{app.displayName}</span>
               <select
                 value={app.categoryId ?? ""}
                 onChange={(e) => handleAssignApp(app.exe, e.target.value === "" ? null : Number(e.target.value))}
-                className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-200"
+                className="field max-w-[48%] shrink-0 rounded-xl px-3 py-2 text-slate-200"
               >
                 <option value="">Uncategorized</option>
                 {categories.map((cat) => (
@@ -244,7 +261,9 @@ export function Settings({ onAuthError }: SettingsProps) {
             </div>
           ))}
           {apps.length === 0 && (
-            <p className="text-sm text-slate-500">No apps tracked yet — they'll show up here once the agent uploads some activity.</p>
+            <p className="text-sm text-slate-500">
+              No apps tracked yet — they&apos;ll show up here once the agent uploads some activity.
+            </p>
           )}
         </div>
       </section>
@@ -263,8 +282,8 @@ function formatMinutes(totalMinutes: number): string {
 function SectionHeader({ icon, title }: { icon?: ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2 text-slate-400">
-      {icon}
-      <h2 className="text-xs font-semibold uppercase tracking-wide">{title}</h2>
+      {icon && <span className="text-indigo-300/80">{icon}</span>}
+      <h2 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em]">{title}</h2>
     </div>
   );
 }
@@ -285,13 +304,15 @@ function ToggleSwitch({
       aria-checked={checked}
       disabled={disabled}
       onClick={onChange}
-      className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${
-        checked ? "bg-indigo-500" : "bg-white/10"
+      className={`relative h-8 w-[3.25rem] shrink-0 rounded-full transition-all disabled:opacity-40 ${
+        checked
+          ? "bg-gradient-to-b from-indigo-400 to-indigo-500 shadow-[0_0_16px_-2px_rgba(99,102,241,0.7)]"
+          : "bg-white/10"
       }`}
     >
       <span
-        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-          checked ? "translate-x-6" : "translate-x-1"
+        className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
+          checked ? "translate-x-[1.45rem]" : "translate-x-1"
         }`}
       />
     </button>
@@ -325,13 +346,14 @@ function CategoryEditor({ initialName, initialColor, onSave, onCancel, isNew }: 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-2xl bg-white/[0.03] p-3.5">
+    <form onSubmit={handleSubmit} className="rounded-2xl bg-white/[0.03] p-3.5 ring-1 ring-white/[0.04]">
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={isNew ? "New category name" : "Category name"}
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-slate-100 outline-none focus:border-indigo-500"
+        enterKeyHint="done"
+        className="field w-full rounded-xl px-3.5 py-3 text-slate-100"
       />
       <div className="mt-3 flex flex-wrap gap-2.5">
         {CATEGORY_COLORS.map((c) => (
@@ -340,8 +362,11 @@ function CategoryEditor({ initialName, initialColor, onSave, onCancel, isNew }: 
             type="button"
             onClick={() => setColor(c)}
             aria-label={`Choose color ${c}`}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
-            style={{ backgroundColor: c }}
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:scale-90"
+            style={{
+              backgroundColor: c,
+              boxShadow: color === c ? `0 0 0 2px #0e1118, 0 0 0 4px ${c}` : undefined,
+            }}
           >
             {color === c && <CheckIcon className="h-4 w-4 text-white drop-shadow" />}
           </button>
@@ -349,15 +374,15 @@ function CategoryEditor({ initialName, initialColor, onSave, onCancel, isNew }: 
       </div>
       <div className="mt-3 flex justify-end gap-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="rounded-full px-3.5 py-2 text-xs font-medium text-slate-400">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="min-h-11 rounded-full px-4 text-sm font-semibold text-slate-400"
+          >
             Cancel
           </button>
         )}
-        <button
-          type="submit"
-          disabled={saving || !name.trim()}
-          className="rounded-full bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-colors active:bg-indigo-600 disabled:opacity-50"
-        >
+        <button type="submit" disabled={saving || !name.trim()} className="btn-primary rounded-full px-5 text-sm">
           {isNew ? "Add category" : "Save"}
         </button>
       </div>
