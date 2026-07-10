@@ -53,7 +53,7 @@ Two deliverables, one repo:
 screentime/
 ├── agent/          # C# .NET 8 — Windows tracker (tray app)
 ├── dashboard/       # One Vercel project: React + Vite + Tailwind PWA, plus:
-│   ├── api/         #   Hono API as Vercel Functions ([[...route]].ts catch-all)
+│   ├── api/         #   Hono API as Vercel Functions ([...route].ts catch-all)
 │   ├── db/           #   Postgres schema
 │   └── dev-server.ts #   Local API dev server (PGlite — no cloud account needed)
 └── PLAN.md
