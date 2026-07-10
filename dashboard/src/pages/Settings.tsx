@@ -134,7 +134,7 @@ export function Settings({ onAuthError }: SettingsProps) {
   if (error) {
     return (
       <div className="page page-center text-slate-100">
-        <div className="surface w-full rounded-[1.75rem] px-8 py-8">
+        <div className="surface w-full max-w-md rounded-[1.75rem] px-8 py-8">
           <p className="text-red-400">{error}</p>
           <button type="button" onClick={load} className="btn-primary mt-4 w-full rounded-full px-5">
             Retry
@@ -146,127 +146,132 @@ export function Settings({ onAuthError }: SettingsProps) {
 
   return (
     <div className="page text-slate-100">
-      <p className="eyebrow animate-rise mb-6">Settings</p>
+      <div className="animate-rise mb-6 lg:mb-8">
+        <p className="eyebrow">Settings</p>
+        <p className="mt-1.5 hidden text-base text-slate-400 lg:block">Limits, notifications, categories, and apps</p>
+      </div>
 
-      <section className="surface animate-rise rounded-[1.75rem] p-4 sm:p-5">
-        <SectionHeader icon={<ClockIcon className="h-4 w-4" />} title="Daily limit" />
-        <form onSubmit={handleSaveLimit} className="mt-4 flex flex-wrap items-center gap-2.5">
-          <input
-            type="number"
-            min="1"
-            inputMode="numeric"
-            value={limitInput}
-            onChange={(e) => setLimitInput(e.target.value)}
-            placeholder="No limit"
-            className="field num w-28 px-3.5 py-3 text-slate-100"
-          />
-          <span className="text-[15px] text-slate-400">min / day</span>
-          <button type="submit" className="btn-primary ml-auto rounded-full px-5 text-sm">
-            Save
-          </button>
-        </form>
-        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-          {dailyLimitMinutes !== null
-            ? `Currently ${formatMinutes(dailyLimitMinutes)}/day. You'll be notified once, the first time you cross it each day.`
-            : "No limit set — clear the field and save to remove an existing limit."}
-        </p>
-      </section>
+      <div className="settings-layout">
+        <section className="surface animate-rise rounded-[1.75rem] p-4 sm:p-5 lg:p-6">
+          <SectionHeader icon={<ClockIcon className="h-4 w-4" />} title="Daily limit" />
+          <form onSubmit={handleSaveLimit} className="mt-4 flex flex-wrap items-center gap-2.5">
+            <input
+              type="number"
+              min="1"
+              inputMode="numeric"
+              value={limitInput}
+              onChange={(e) => setLimitInput(e.target.value)}
+              placeholder="No limit"
+              className="field num w-28 px-3.5 py-3 text-slate-100"
+            />
+            <span className="text-[15px] text-slate-400">min / day</span>
+            <button type="submit" className="btn-primary ml-auto rounded-full px-5 text-sm">
+              Save
+            </button>
+          </form>
+          <p className="mt-3 text-xs leading-relaxed text-slate-500">
+            {dailyLimitMinutes !== null
+              ? `Currently ${formatMinutes(dailyLimitMinutes)}/day. You'll be notified once, the first time you cross it each day.`
+              : "No limit set — clear the field and save to remove an existing limit."}
+          </p>
+        </section>
 
-      <section className="surface animate-rise-delay-1 mt-4 rounded-[1.75rem] p-4 sm:p-5">
-        <SectionHeader icon={<BellIcon className="h-4 w-4" />} title="Notifications" />
-        <div className="mt-4 flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-white/[0.04]">
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-medium text-slate-100">
-              {pushSubscribed ? "Enabled" : "Disabled"}
-            </p>
-            {!isPushSupported() && <p className="mt-0.5 text-xs text-slate-500">Not supported in this browser.</p>}
-            {pushError && <p className="mt-0.5 text-xs text-red-400">{pushError}</p>}
+        <section className="surface animate-rise-delay-1 rounded-[1.75rem] p-4 sm:p-5 lg:p-6">
+          <SectionHeader icon={<BellIcon className="h-4 w-4" />} title="Notifications" />
+          <div className="mt-4 flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-white/[0.04]">
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-medium text-slate-100">
+                {pushSubscribed ? "Enabled" : "Disabled"}
+              </p>
+              {!isPushSupported() && <p className="mt-0.5 text-xs text-slate-500">Not supported in this browser.</p>}
+              {pushError && <p className="mt-0.5 text-xs text-red-400">{pushError}</p>}
+            </div>
+            <ToggleSwitch checked={pushSubscribed} disabled={pushBusy || !isPushSupported()} onChange={handleTogglePush} />
           </div>
-          <ToggleSwitch checked={pushSubscribed} disabled={pushBusy || !isPushSupported()} onChange={handleTogglePush} />
-        </div>
-        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-          On iOS, enable notifications only after adding ScreenTime to your Home Screen — Safari tabs can&apos;t receive
-          push.
-        </p>
-      </section>
+          <p className="mt-3 text-xs leading-relaxed text-slate-500">
+            On iOS, enable notifications only after adding ScreenTime to your Home Screen — Safari tabs can&apos;t
+            receive push.
+          </p>
+        </section>
 
-      <section className="surface animate-rise-delay-1 mt-4 rounded-[1.75rem] p-4 sm:p-5">
-        <SectionHeader title="Categories" />
-        <div className="mt-4 space-y-2">
-          {categories.map((cat) =>
-            editingId === cat.id ? (
-              <CategoryEditor
-                key={cat.id}
-                initialName={cat.name}
-                initialColor={cat.color}
-                onSave={(name, color) => handleSaveCategory(cat.id, name, color)}
-                onCancel={() => setEditingId(null)}
-              />
-            ) : (
+        <section className="surface animate-rise-delay-1 rounded-[1.75rem] p-4 sm:p-5 lg:p-6">
+          <SectionHeader title="Categories" />
+          <div className="mt-4 space-y-2">
+            {categories.map((cat) =>
+              editingId === cat.id ? (
+                <CategoryEditor
+                  key={cat.id}
+                  initialName={cat.name}
+                  initialColor={cat.color}
+                  onSave={(name, color) => handleSaveCategory(cat.id, name, color)}
+                  onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <div
+                  key={cat.id}
+                  className="flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-3 py-2 ring-1 ring-white/[0.04]"
+                >
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: cat.color, boxShadow: `0 0 8px ${cat.color}66` }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-slate-100">{cat.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(cat.id)}
+                    className="min-h-11 min-w-11 rounded-xl px-2 text-xs font-semibold text-slate-400 active:bg-white/5 lg:hover:text-slate-200"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCategory(cat.id)}
+                    className="min-h-11 min-w-11 rounded-xl px-2 text-xs font-semibold text-red-400/80 active:bg-white/5 lg:hover:text-red-400"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ),
+            )}
+            {categories.length === 0 && <p className="text-sm text-slate-500">No categories yet.</p>}
+          </div>
+
+          <div className="mt-3">
+            <CategoryEditor initialName="" initialColor={CATEGORY_COLORS[0]} onSave={handleCreateCategory} isNew />
+          </div>
+        </section>
+
+        <section className="surface animate-rise-delay-2 rounded-[1.75rem] p-4 sm:p-5 lg:p-6">
+          <SectionHeader title="Apps" />
+          <div className="mt-4 max-h-[28rem] space-y-2 overflow-y-auto pr-1 lg:max-h-[32rem]">
+            {apps.map((app) => (
               <div
-                key={cat.id}
+                key={app.exe}
                 className="flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-3 py-2 ring-1 ring-white/[0.04]"
               >
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: cat.color, boxShadow: `0 0 8px ${cat.color}66` }}
-                />
-                <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-slate-100">{cat.name}</span>
-                <button
-                  type="button"
-                  onClick={() => setEditingId(cat.id)}
-                  className="min-h-11 min-w-11 rounded-xl px-2 text-xs font-semibold text-slate-400 active:bg-white/5"
+                <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-slate-100">{app.displayName}</span>
+                <select
+                  value={app.categoryId ?? ""}
+                  onChange={(e) => handleAssignApp(app.exe, e.target.value === "" ? null : Number(e.target.value))}
+                  className="field max-w-[48%] shrink-0 rounded-xl px-3 py-2 text-slate-200 lg:max-w-[12rem]"
                 >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteCategory(cat.id)}
-                  className="min-h-11 min-w-11 rounded-xl px-2 text-xs font-semibold text-red-400/80 active:bg-white/5"
-                >
-                  Delete
-                </button>
+                  <option value="">Uncategorized</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ),
-          )}
-          {categories.length === 0 && <p className="text-sm text-slate-500">No categories yet.</p>}
-        </div>
-
-        <div className="mt-3">
-          <CategoryEditor initialName="" initialColor={CATEGORY_COLORS[0]} onSave={handleCreateCategory} isNew />
-        </div>
-      </section>
-
-      <section className="surface animate-rise-delay-2 mt-4 rounded-[1.75rem] p-4 sm:p-5">
-        <SectionHeader title="Apps" />
-        <div className="mt-4 space-y-2">
-          {apps.map((app) => (
-            <div
-              key={app.exe}
-              className="flex min-h-[3.25rem] items-center gap-3 rounded-2xl bg-white/[0.03] px-3 py-2 ring-1 ring-white/[0.04]"
-            >
-              <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-slate-100">{app.displayName}</span>
-              <select
-                value={app.categoryId ?? ""}
-                onChange={(e) => handleAssignApp(app.exe, e.target.value === "" ? null : Number(e.target.value))}
-                className="field max-w-[48%] shrink-0 rounded-xl px-3 py-2 text-slate-200"
-              >
-                <option value="">Uncategorized</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-          {apps.length === 0 && (
-            <p className="text-sm text-slate-500">
-              No apps tracked yet — they&apos;ll show up here once the agent uploads some activity.
-            </p>
-          )}
-        </div>
-      </section>
+            ))}
+            {apps.length === 0 && (
+              <p className="text-sm text-slate-500">
+                No apps tracked yet — they&apos;ll show up here once the agent uploads some activity.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

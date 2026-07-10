@@ -65,18 +65,28 @@ body::before {
     linear-gradient(180deg, #07080e 0%, var(--color-void) 40%, #04050a 100%);
 }
 
-/* Phone-width column, centered on larger screens / landscape */
+/* ─── App shell: mobile stack / desktop sidebar ─────────────────────────── */
+
+.app-shell {
+  min-height: 100dvh;
+  min-height: 100dvh;
+}
+
+.app-main {
+  min-width: 0;
+  min-height: 100dvh;
+}
+
+/* Phone-width column by default */
 .page {
   width: 100%;
-  max-width: 28rem; /* ~448px — classic phone content width */
+  max-width: 28rem;
   margin-left: auto;
   margin-right: auto;
   min-height: 100dvh;
   padding-left: max(1.25rem, env(safe-area-inset-left));
   padding-right: max(1.25rem, env(safe-area-inset-right));
-  /* Notch / Dynamic Island clearance */
   padding-top: max(1.75rem, calc(env(safe-area-inset-top) + 0.75rem));
-  /* Room for floating dock + home indicator */
   padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
@@ -87,6 +97,200 @@ body::before {
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+/* Desktop sidebar — hidden on phones */
+.sidebar {
+  display: none;
+}
+
+.sidebar-nav-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9375rem;
+  font-weight: 550;
+  color: #94a3b8;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+}
+
+.sidebar-nav-btn-active {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.1));
+  color: #e0e7ff;
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.18) inset;
+}
+
+/* Layout grids — single column on phone, multi on desktop */
+.today-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.settings-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.history-stats {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+  }
+
+  .sidebar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.5rem 1rem 1.25rem;
+    border-right: 1px solid var(--color-edge);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
+      rgba(8, 10, 16, 0.55);
+    backdrop-filter: blur(20px) saturate(1.15);
+    -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  }
+
+  .dock-wrap {
+    display: none !important;
+  }
+
+  .page {
+    max-width: 72rem;
+    margin: 0;
+    min-height: 100dvh;
+    padding: 2rem 2.25rem 2.5rem;
+  }
+
+  .page-center {
+    max-width: none;
+  }
+
+  .today-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.25fr);
+    grid-template-rows: auto auto;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .today-layout > .today-hero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .today-layout > .today-breakdown {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .today-layout > .today-apps {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: stretch;
+    min-height: 100%;
+  }
+
+  /* When no breakdown, apps still sit beside hero */
+  .today-layout:not(:has(.today-breakdown)) > .today-apps {
+    grid-row: 1;
+  }
+
+  .settings-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .settings-span-2 {
+    grid-column: 1 / -1;
+  }
+
+  .history-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .history-desktop-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.7fr);
+    gap: 1.25rem;
+    align-items: start;
+    margin-top: 1.25rem;
+  }
+
+  .history-desktop-panel > .history-chart-card {
+    margin-top: 0;
+  }
+
+  .token-gate-desktop {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    max-width: 56rem;
+    width: 100%;
+    gap: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .token-gate-desktop .token-gate-brand {
+    display: flex;
+  }
+
+  /* Desktop hover feel for rows */
+  .row-tap:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.06);
+  }
+}
+
+/* Hide desktop-only chrome on mobile */
+.token-gate-brand {
+  display: none;
+}
+
+.history-desktop-side {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .history-desktop-side {
+    display: block;
+  }
+
+  /* Mobile-only day detail under chart becomes redundant with side panel */
+  .history-mobile-detail {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .history-desktop-panel {
+    display: block;
+  }
 }
 
 /* ─── Surfaces ──────────────────────────────────────────────────────────── */
