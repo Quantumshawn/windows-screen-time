@@ -142,3 +142,23 @@ export function patchCategory(id: number, patch: { name?: string; color?: string
 export function deleteCategory(id: number): Promise<{ ok: true }> {
   return apiFetch<{ ok: true }>(`/api/v1/categories/${id}`, { method: "DELETE" });
 }
+
+export function fetchSettings(): Promise<{ dailyLimitMinutes: number | null }> {
+  return apiFetch<{ dailyLimitMinutes: number | null }>("/api/v1/settings");
+}
+
+export function putSettings(dailyLimitMinutes: number | null): Promise<{ dailyLimitMinutes: number | null }> {
+  return apiFetch("/api/v1/settings", { method: "PUT", body: JSON.stringify({ dailyLimitMinutes }) });
+}
+
+export function fetchVapidPublicKey(): Promise<{ publicKey: string }> {
+  return apiFetch<{ publicKey: string }>("/api/v1/push/vapid-public-key");
+}
+
+export function subscribePush(subscription: PushSubscriptionJSON): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>("/api/v1/push/subscribe", { method: "POST", body: JSON.stringify(subscription) });
+}
+
+export function unsubscribePush(endpoint: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>("/api/v1/push/subscribe", { method: "DELETE", body: JSON.stringify({ endpoint }) });
+}

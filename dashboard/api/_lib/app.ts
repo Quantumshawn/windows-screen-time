@@ -11,6 +11,8 @@ import {
   handlePatchCategory,
   handlePostCategory,
 } from "../routes/categories.js";
+import { handleGetSettings, handlePutSettings } from "../routes/settings.js";
+import { handleDeleteSubscribe, handleGetVapidPublicKey, handlePostSubscribe } from "../routes/push.js";
 
 export const app = new Hono().basePath("/api");
 
@@ -27,5 +29,12 @@ app.get("/v1/categories", requireToken("DASHBOARD_TOKEN"), handleGetCategories);
 app.post("/v1/categories", requireToken("DASHBOARD_TOKEN"), handlePostCategory);
 app.patch("/v1/categories/:id", requireToken("DASHBOARD_TOKEN"), handlePatchCategory);
 app.delete("/v1/categories/:id", requireToken("DASHBOARD_TOKEN"), handleDeleteCategory);
+
+app.get("/v1/settings", requireToken("DASHBOARD_TOKEN"), handleGetSettings);
+app.put("/v1/settings", requireToken("DASHBOARD_TOKEN"), handlePutSettings);
+
+app.get("/v1/push/vapid-public-key", requireToken("DASHBOARD_TOKEN"), handleGetVapidPublicKey);
+app.post("/v1/push/subscribe", requireToken("DASHBOARD_TOKEN"), handlePostSubscribe);
+app.delete("/v1/push/subscribe", requireToken("DASHBOARD_TOKEN"), handleDeleteSubscribe);
 
 app.get("/cron/rollup", requireCronSecret, handleRollup);

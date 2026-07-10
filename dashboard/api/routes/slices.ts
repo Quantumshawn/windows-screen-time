@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { query } from "../_lib/db.js";
+import { checkDailyLimitAndNotify } from "../_lib/dailyLimit.js";
 
 interface IncomingSlice {
   id: string;
@@ -62,6 +63,7 @@ export async function handlePostSlices(c: Context) {
   );
 
   await registerNewApps(valid);
+  await checkDailyLimitAndNotify();
 
   return c.json({ accepted: valid.length });
 }

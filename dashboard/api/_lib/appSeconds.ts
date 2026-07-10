@@ -67,6 +67,17 @@ export async function queryAppSecondsByRollupRange(
   return rows.map((r) => ({ ...mapRow(r), date: r.date }));
 }
 
+/** Just the total, no per-app grouping — for the daily-limit check, which only needs one number. */
+export async function queryTotalSecondsInWindow(fromTs: number, toTs: number): Promise<number> {
+  const rows = await query<{ total: string | null }>(
+    `SELECT SUM(GREATEST(0, LEAST(end_ts, $2) - GREATEST(start_ts, $1))) AS total
+     FROM slices
+     WHERE end_ts > $1 AND start_ts < $2`,
+    [fromTs, toTs],
+  );
+  return Number(rows[0]?.total ?? 0);
+}
+
 function mapRow(r: AppSecondsRow): AppSecondsWithCategory {
   return {
     exe: r.exe,

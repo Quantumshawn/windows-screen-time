@@ -29,6 +29,11 @@ async function main() {
   process.env.DATABASE_URL = `postgres://postgres@127.0.0.1:${PG_SOCKET_PORT}/postgres`;
   process.env.DEVICE_TOKEN ??= "dev-device-token";
   process.env.DASHBOARD_TOKEN ??= "dev-dashboard-token";
+  // Dev-only VAPID keypair — production must generate its own (`npx web-push generate-vapid-keys`
+  // or webpush.generateVAPIDKeys()) rather than reusing keys that have appeared in a repo/transcript.
+  process.env.VAPID_PUBLIC_KEY ??=
+    "BMFkJGjp-jF2yO6gwx90-d4k9mNKQvvIT29xVIC1tTl1KLG__FMLBnND6NP8j3TYIHAiCXyA2Kss9JwlaMXB9IY";
+  process.env.VAPID_PRIVATE_KEY ??= "5Eubiw9WPUf9RZ0AMRxcjMDabIREveBWskdxfAfvX6Q";
 
   // Dynamic import so DATABASE_URL is set before the app (and its lazy db pool) ever loads.
   const { app } = await import("./api/_lib/app.js");

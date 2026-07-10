@@ -31,3 +31,17 @@ CREATE TABLE IF NOT EXISTS apps (
   display_name TEXT NOT NULL,
   category_id  INTEGER REFERENCES categories(id) ON DELETE SET NULL
 );
+
+-- keys used: dailyLimitMinutes, limitAlertSentDate (internal — last local date an
+-- over-limit push was sent, so it fires at most once per day; not user-editable)
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  endpoint   TEXT PRIMARY KEY,
+  p256dh     TEXT NOT NULL,
+  auth       TEXT NOT NULL,
+  created_at BIGINT NOT NULL
+);

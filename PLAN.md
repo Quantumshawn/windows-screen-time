@@ -274,9 +274,18 @@ History's stacked bars now apply the dataviz skill's "part-to-whole → stacked 
 
 Stacking order is fixed by category id (not sorted by that day's seconds, which the API returns for other uses) — otherwise a category's band would jump position day to day and be untrackable as a trend. Segment gaps are 2px rects painted in the exact page background color, clipped to a rounded-top pill via an SVG `clipPath`, rather than subtracting gap width from each segment's height — simpler and no accumulating rounding error across a stack.
 
-**Phase 6 — Daily limit + push (~1–2 evenings)**
+**Phase 6 — Daily limit + push (~1–2 evenings)** ✅ built
 VAPID push from the API, subscribe flow in Settings, ingest-time limit check.
 *Done when:* Set limit to 1 minute, use the PC, phone buzzes within ~2 minutes.
+
+The limit check runs inline at the end of every slice upload (`checkDailyLimitAndNotify`, called from `POST /v1/slices`) rather than on a cron — a cron would only catch the crossing up to a poll interval late, and the agent already uploads frequently, so piggybacking on ingest gives near-immediate notification with no extra moving part. A `settings.limitAlertSentDate` row (compared against today's local date, derived from the same `TIMEZONE` env var as the rollup boundaries) gates it to exactly one push per calendar day regardless of how many uploads cross the threshold afterward.
+
+`sendPushToAllSubscriptions` swallows every send failure into a `console.error` and specifically sweeps 404/410 responses into a stale-endpoint cleanup — a dead subscription (uninstalled PWA, revoked permission, iOS reinstall) self-heals out of the table instead of erroring on every future notification forever.
+
+Verification here needed real infrastructure, not mocks, and surfaced two environment issues that were mistaken for app bugs at first:
+- Playwright's default `browser.newContext()` is an incognito-mode context, and Chrome deliberately disables the Push API there — `pushManager.subscribe()` never even got called. Fixed by switching the test harness to `chromium.launchPersistentContext()` with a real temp profile directory.
+- With that fixed, subscribing still failed with Chromium's literal error string *"push service not available."* This wasn't a code bug — Playwright's bundled Chromium is an open-source build with no Google API keys compiled in, and registering with the real push service requires them. Real Google Chrome has the keys; pointing the test at `channel: "chrome"` (already installed on this machine) fixed it, and subscribing then took ~3 seconds for the real round trip to Google's registration servers.
+- With a genuine subscription in hand, the send path was verified for real (not just "didn't throw," since `sendPushToAllSubscriptions` catches everything internally and would silently look successful either way): a temporary log of `webpush.sendNotification`'s resolved `statusCode` confirmed a real `201` from `fcm.googleapis.com` on first crossing, and a second crossing the same day produced no second send — confirming the once-a-day guard — before the temporary logging was removed.
 
 **Phase 7 — Polish (~1 evening)**
 Tray icon menu, autostart registry entry, single-file publish, log rotation, README.

@@ -5,11 +5,14 @@ import {
   deleteCategory,
   fetchApps,
   fetchCategories,
+  fetchSettings,
   patchApp,
   patchCategory,
+  putSettings,
   type App,
   type Category,
 } from "../api";
+import { disablePushNotifications, enablePushNotifications, getPushSubscriptionStatus, isPushSupported } from "../push";
 
 // The dataviz skill's validated dark-mode categorical palette (8 fixed hues, fixed order),
 // checked against this dashboard's actual surface color (#020617) — not hand-picked.
@@ -31,6 +34,11 @@ interface SettingsProps {
 export function Settings({ onAuthError }: SettingsProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [apps, setApps] = useState<App[]>([]);
+  const [dailyLimitMinutes, setDailyLimitMinutes] = useState<number | null>(null);
+  const [limitInput, setLimitInput] = useState("");
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -38,9 +46,17 @@ export function Settings({ onAuthError }: SettingsProps) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [c, a] = await Promise.all([fetchCategories(), fetchApps()]);
+      const [c, a, s, sub] = await Promise.all([
+        fetchCategories(),
+        fetchApps(),
+        fetchSettings(),
+        isPushSupported() ? getPushSubscriptionStatus() : Promise.resolve(null),
+      ]);
       setCategories(c.categories);
       setApps(a.apps);
+      setDailyLimitMinutes(s.dailyLimitMinutes);
+      setLimitInput(s.dailyLimitMinutes !== null ? String(s.dailyLimitMinutes) : "");
+      setPushSubscribed(sub !== null);
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -56,6 +72,33 @@ export function Settings({ onAuthError }: SettingsProps) {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function handleSaveLimit(e: FormEvent) {
+    e.preventDefault();
+    const trimmed = limitInput.trim();
+    const value = trimmed === "" ? null : Number(trimmed);
+    if (value !== null && (!Number.isFinite(value) || value <= 0)) return;
+    const result = await putSettings(value);
+    setDailyLimitMinutes(result.dailyLimitMinutes);
+  }
+
+  async function handleTogglePush() {
+    setPushBusy(true);
+    setPushError(null);
+    try {
+      if (pushSubscribed) {
+        await disablePushNotifications();
+        setPushSubscribed(false);
+      } else {
+        await enablePushNotifications();
+        setPushSubscribed(true);
+      }
+    } catch (err) {
+      setPushError(err instanceof Error ? err.message : "Failed to update notifications");
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function handleCreateCategory(name: string, color: string) {
     await createCategory(name, color);
@@ -100,6 +143,52 @@ export function Settings({ onAuthError }: SettingsProps) {
       <h1 className="text-sm font-medium uppercase tracking-wide text-slate-500">Settings</h1>
 
       <section className="mt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Daily limit</h2>
+        <form onSubmit={handleSaveLimit} className="mt-3 flex items-center gap-2">
+          <input
+            type="number"
+            min="1"
+            inputMode="numeric"
+            value={limitInput}
+            onChange={(e) => setLimitInput(e.target.value)}
+            placeholder="No limit"
+            className="w-28 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500"
+          />
+          <span className="text-sm text-slate-400">minutes / day</span>
+          <button type="submit" className="ml-auto rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white">
+            Save
+          </button>
+        </form>
+        <p className="mt-2 text-xs text-slate-500">
+          {dailyLimitMinutes !== null
+            ? `Currently ${Math.floor(dailyLimitMinutes / 60)}h ${dailyLimitMinutes % 60}m/day. You'll be notified once, the first time you cross it each day.`
+            : "No limit set — clear the field and save to remove an existing limit."}
+        </p>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notifications</h2>
+        <div className="mt-3 flex items-center gap-3 rounded-lg bg-slate-900 px-3 py-2.5">
+          <div className="flex-1">
+            <p className="text-sm text-slate-200">{pushSubscribed ? "Notifications enabled" : "Notifications disabled"}</p>
+            {!isPushSupported() && <p className="mt-0.5 text-xs text-slate-500">Not supported in this browser.</p>}
+            {pushError && <p className="mt-0.5 text-xs text-red-400">{pushError}</p>}
+          </div>
+          <button
+            onClick={handleTogglePush}
+            disabled={pushBusy || !isPushSupported()}
+            className="rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 disabled:opacity-50"
+          >
+            {pushSubscribed ? "Disable" : "Enable"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          On iOS, this only works after adding ScreenTime to your Home Screen — notifications from a Safari tab aren't
+          supported.
+        </p>
+      </section>
+
+      <section className="mt-8">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Categories</h2>
         <div className="mt-3 space-y-2">
           {categories.map((cat) =>
