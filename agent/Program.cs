@@ -1,9 +1,15 @@
+using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
+using System.Windows.Forms;
 using Microsoft.Win32;
 using ScreenTime.Agent.Config;
+using ScreenTime.Agent.Logging;
 using ScreenTime.Agent.Storage;
 using ScreenTime.Agent.Tracking;
 using ScreenTime.Agent.Upload;
+
+FileLogger.Initialize();
 
 var config = AgentConfig.LoadOrCreate();
 
@@ -72,75 +78,178 @@ SystemEvents.PowerModeChanged += (_, e) =>
     }
 };
 
-var running = true;
+using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {
+    // Only meaningful when launched from a terminal for dev/testing — autostart (no console)
+    // exits via the tray icon's Exit item instead, which also lands here.
     e.Cancel = true;
-    running = false;
+    cts.Cancel();
+    Application.Exit();
 };
 
 Log($"ScreenTime Agent starting. idleThreshold={config.IdleThresholdSec}s sampleInterval={config.SampleIntervalMs}ms");
 Log($"Local queue: {queueDbPath}");
-Log("Press Ctrl+C to stop.");
 Log("");
 
-string? lastLoggedExe = null;
-var lastPersistOpen = DateTimeOffset.MinValue;
-var tickCount = 0;
+var trackingTask = Task.Run(() => RunTrackingLoopAsync(cts.Token));
 
-using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(config.SampleIntervalMs));
-while (running && await timer.WaitForNextTickAsync())
+using var trayIcon = BuildTrayIcon();
+Application.Run();
+
+cts.Cancel();
+await trackingTask;
+
+async Task RunTrackingLoopAsync(CancellationToken ct)
 {
-    tracker.Tick();
-    tickCount++;
+    string? lastLoggedExe = null;
+    var lastPersistOpen = DateTimeOffset.MinValue;
+    var tickCount = 0;
 
-    var open = tracker.Current;
-    if (open is not null)
+    using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(config.SampleIntervalMs));
+    try
     {
-        if (!string.Equals(open.Exe, lastLoggedExe, StringComparison.OrdinalIgnoreCase))
+        while (await timer.WaitForNextTickAsync(ct))
         {
-            Log($"ACTIVE  {open.DisplayName} ({open.Exe}) - slice started at {Fmt(open.StartTs)}");
-            lastLoggedExe = open.Exe;
-        }
+            tracker.Tick();
+            tickCount++;
 
-        if (DateTimeOffset.UtcNow - lastPersistOpen >= TimeSpan.FromSeconds(config.UploadIntervalSec))
-        {
-            store.UpsertOpenSlice(open);
-            lastPersistOpen = DateTimeOffset.UtcNow;
+            var open = tracker.Current;
+            if (open is not null)
+            {
+                if (!string.Equals(open.Exe, lastLoggedExe, StringComparison.OrdinalIgnoreCase))
+                {
+                    Log($"ACTIVE  {open.DisplayName} ({open.Exe}) - slice started at {Fmt(open.StartTs)}");
+                    lastLoggedExe = open.Exe;
+                }
+
+                if (DateTimeOffset.UtcNow - lastPersistOpen >= TimeSpan.FromSeconds(config.UploadIntervalSec))
+                {
+                    store.UpsertOpenSlice(open);
+                    lastPersistOpen = DateTimeOffset.UtcNow;
+                }
+            }
+            else
+            {
+                lastLoggedExe = null;
+            }
+
+            // Heartbeat every ~10s so the idle countdown is visible during manual testing
+            // (e.g. confirming AFK-in-Minecraft gets trimmed instead of counted).
+            if (tickCount % 10 == 0)
+            {
+                var idleSec = tracker.LastIdleMs / 1000.0;
+                var state = tracker.IsLocked ? "LOCKED" : open is not null ? "active" : "AFK";
+                Log($"  ... [{state}] idle={idleSec:F0}s (afk-threshold={config.IdleThresholdSec}s) focus={open?.DisplayName ?? "(none)"}");
+            }
+
+            if (uploader is not null && uploader.ShouldAttempt(DateTimeOffset.UtcNow))
+            {
+                var result = await uploader.TryUploadAsync(store, CancellationToken.None);
+                if (result.Attempted)
+                {
+                    Log(result.Ok
+                        ? $"UPLOAD  sent {result.Count} slice(s) to server"
+                        : $"UPLOAD  failed ({result.Error}) - backing off");
+                }
+            }
         }
     }
-    else
+    catch (OperationCanceledException)
     {
-        lastLoggedExe = null;
+        // Expected on shutdown (tray Exit or Ctrl+C) — fall through to the flush below.
     }
 
-    // Heartbeat every ~10s so the idle countdown is visible during manual testing
-    // (e.g. confirming AFK-in-Minecraft gets trimmed instead of counted).
-    if (tickCount % 10 == 0)
-    {
-        var idleSec = tracker.LastIdleMs / 1000.0;
-        var state = tracker.IsLocked ? "LOCKED" : open is not null ? "active" : "AFK";
-        Log($"  ... [{state}] idle={idleSec:F0}s (afk-threshold={config.IdleThresholdSec}s) focus={open?.DisplayName ?? "(none)"}");
-    }
+    // Graceful shutdown: flush the open slice, trimmed to last real input.
+    tracker.Shutdown();
+    Log("Stopped.");
+}
 
-    if (uploader is not null && uploader.ShouldAttempt(DateTimeOffset.UtcNow))
+NotifyIcon BuildTrayIcon()
+{
+    var openItem = new ToolStripMenuItem("Open Dashboard") { Enabled = !string.IsNullOrWhiteSpace(config.ApiUrl) };
+    openItem.Click += (_, _) => OpenDashboard();
+
+    var autostartItem = new ToolStripMenuItem("Start with Windows")
     {
-        var result = await uploader.TryUploadAsync(store, CancellationToken.None);
-        if (result.Attempted)
+        CheckOnClick = true,
+        Checked = AutostartManager.IsEnabled(),
+    };
+    autostartItem.Click += (_, _) =>
+    {
+        if (autostartItem.Checked)
         {
-            Log(result.Ok
-                ? $"UPLOAD  sent {result.Count} slice(s) to server"
-                : $"UPLOAD  failed ({result.Error}) - backing off");
+            AutostartManager.Enable();
         }
+        else
+        {
+            AutostartManager.Disable();
+        }
+    };
+
+    var exitItem = new ToolStripMenuItem("Exit");
+    exitItem.Click += (_, _) => Application.Exit();
+
+    var menu = new ContextMenuStrip();
+    menu.Items.Add(openItem);
+    menu.Items.Add(autostartItem);
+    menu.Items.Add(new ToolStripSeparator());
+    menu.Items.Add(exitItem);
+
+    var icon = new NotifyIcon
+    {
+        Icon = LoadAppIcon(),
+        Text = "ScreenTime Agent",
+        Visible = true,
+        ContextMenuStrip = menu,
+    };
+    icon.DoubleClick += (_, _) => OpenDashboard();
+    return icon;
+}
+
+void OpenDashboard()
+{
+    if (string.IsNullOrWhiteSpace(config.ApiUrl))
+    {
+        return;
+    }
+
+    try
+    {
+        Process.Start(new ProcessStartInfo(config.ApiUrl) { UseShellExecute = true });
+    }
+    catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+    {
+        Log($"Failed to open dashboard: {ex.Message}");
     }
 }
 
-// Graceful shutdown: flush the open slice, trimmed to last real input.
-tracker.Shutdown();
-Log("Stopped.");
+static Icon LoadAppIcon()
+{
+    // Extracts the icon baked into this exe via <ApplicationIcon> at build time — works for
+    // the published single-file exe; falls back gracefully for dev-time `dotnet run` hosts
+    // that don't carry it.
+    try
+    {
+        var path = Environment.ProcessPath;
+        if (!string.IsNullOrEmpty(path))
+        {
+            var extracted = Icon.ExtractAssociatedIcon(path);
+            if (extracted is not null)
+            {
+                return extracted;
+            }
+        }
+    }
+    catch (Exception ex) when (ex is IOException or ArgumentException)
+    {
+        // Fall through to the system default below.
+    }
 
-static void Log(string message) =>
-    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+    return SystemIcons.Application;
+}
+
+static void Log(string message) => FileLogger.Log(message);
 
 static string Fmt(DateTimeOffset ts) => ts.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 

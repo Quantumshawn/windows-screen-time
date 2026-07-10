@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>ScreenTime.Agent</RootNamespace>
     <AssemblyName>ScreenTimeAgent</AssemblyName>
-    <ApplicationIcon />
+    <ApplicationIcon>icon.ico</ApplicationIcon>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
