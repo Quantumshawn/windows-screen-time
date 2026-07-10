@@ -1,18 +1,18 @@
 import { Hono } from "hono";
 import { requireCronSecret, requireToken } from "./auth.js";
-import { handlePostSlices } from "../routes/slices.js";
-import { handleGetSummary } from "../routes/summary.js";
-import { handleGetRange } from "../routes/range.js";
-import { handleRollup } from "../routes/rollup.js";
-import { handleGetApps, handlePatchApp } from "../routes/apps.js";
+import { handlePostSlices } from "../_routes/slices.js";
+import { handleGetSummary } from "../_routes/summary.js";
+import { handleGetRange } from "../_routes/range.js";
+import { handleRollup } from "../_routes/rollup.js";
+import { handleGetApps, handlePatchApp } from "../_routes/apps.js";
 import {
   handleDeleteCategory,
   handleGetCategories,
   handlePatchCategory,
   handlePostCategory,
-} from "../routes/categories.js";
-import { handleGetSettings, handlePutSettings } from "../routes/settings.js";
-import { handleDeleteSubscribe, handleGetVapidPublicKey, handlePostSubscribe } from "../routes/push.js";
+} from "../_routes/categories.js";
+import { handleGetSettings, handlePutSettings } from "../_routes/settings.js";
+import { handleDeleteSubscribe, handleGetVapidPublicKey, handlePostSubscribe } from "../_routes/push.js";
 
 export const app = new Hono().basePath("/api");
 
