@@ -61,5 +61,33 @@ export async function handlePostSlices(c: Context) {
     values,
   );
 
+  await registerNewApps(valid);
+
   return c.json({ accepted: valid.length });
+}
+
+/**
+ * First-seen-wins registration into `apps`: an exe not seen before gets a row with a
+ * default display name and no category. DO NOTHING on conflict so a user's later edits
+ * (rename, category assignment) are never clobbered by a subsequent slice upload for
+ * the same exe.
+ */
+async function registerNewApps(slices: IncomingSlice[]): Promise<void> {
+  const byExe = new Map<string, string>();
+  for (const s of slices) {
+    if (!byExe.has(s.exe)) {
+      byExe.set(s.exe, s.displayName?.trim() || s.exe);
+    }
+  }
+
+  const values: unknown[] = [];
+  const placeholders = [...byExe.entries()].map(([exe, displayName], i) => {
+    values.push(exe, displayName);
+    return `($${i * 2 + 1}, $${i * 2 + 2})`;
+  });
+
+  await query(
+    `INSERT INTO apps (exe, display_name) VALUES ${placeholders.join(", ")} ON CONFLICT (exe) DO NOTHING`,
+    values,
+  );
 }

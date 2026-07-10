@@ -265,8 +265,14 @@ Caught only by actually running it (three real bugs, not just review):
 - `/range` only returned dates that had matching rows, so an all-zero day (PC off all day) silently vanished from the response instead of showing a zero bar — would have quietly compressed the x-axis.
 - The topmost gridline's label had no headroom in the SVG viewBox and rendered clipped — only visible by actually screenshotting the chart, exactly per the dataviz skill's "render it and look at it" step.
 
-**Phase 5 — Categories (~1 evening)**
+**Phase 5 — Categories (~1 evening)** ✅ built
 Categories CRUD, app assignment UI, category colors flow into all charts.
+
+Apps auto-register into the `apps` table the first time their exe shows up in an uploaded slice (first-seen-wins on the display name; a later PATCH edit is never clobbered by a subsequent upload of the same exe). Category is resolved at *read time* via a LEFT JOIN — not baked into `daily_rollups` — so re-categorizing an app immediately updates every past day's chart too, not just going forward.
+
+History's stacked bars now apply the dataviz skill's "part-to-whole → stacked bar, categorical color" guidance directly: Phase 4 deliberately used a single flat color instead of stacking by raw exe name (open-ended cardinality, no natural fixed order — the skill's series-count ladder says fold that into small multiples or composite encoding, not force a stack). Categories are the opposite: small, fixed, meaningful, user-defined — exactly the cardinality a stack wants. Category color choices come from the skill's own validated dark-mode reference palette (checked with `validate_palette.js` against this dashboard's actual surface color, not hand-picked) rather than arbitrary hex values — a first attempt at picking Tailwind colors by eye failed the CVD-separation check outright (ΔE 4.4 between two swatches, far under the floor of 8).
+
+Stacking order is fixed by category id (not sorted by that day's seconds, which the API returns for other uses) — otherwise a category's band would jump position day to day and be untrackable as a trend. Segment gaps are 2px rects painted in the exact page background color, clipped to a rounded-top pill via an SVG `clipPath`, rather than subtracting gap width from each segment's height — simpler and no accumulating rounding error across a stack.
 
 **Phase 6 — Daily limit + push (~1–2 evenings)**
 VAPID push from the API, subscribe flow in Settings, ingest-time limit check.

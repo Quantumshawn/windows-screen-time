@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, fetchRange, localDateString, type DayBreakdown, type RangeResponse } from "../api";
+import { ApiError, fetchRange, localDateString, type CategorySeconds, type DayBreakdown, type RangeResponse } from "../api";
 
 type RangeMode = "week" | "month";
 
-// Single-series magnitude chart: one flat series color, no legend (title names it).
-// The bars are the only chart element that carries the accent hue — everything else
-// (axis, gridlines, labels) stays in muted/ink tokens per the dataviz mark specs.
-const BAR_COLOR = "#6366f1"; // tailwind indigo-500
-const BAR_COLOR_TODAY = "#818cf8"; // indigo-400 — today's bar is still live/growing
+const SURFACE = "#020617"; // tailwind slate-950 — matches the page background exactly,
+// used to paint the 2px gap between stacked segments (the gap IS this color, not transparency)
 const GRID_COLOR = "#2c2c2a";
 const MUTED_TEXT = "#898781";
 const TODAY_TEXT = "#c7d2fe";
@@ -23,6 +20,7 @@ const GRID_FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
 // strip — deliberately different characters (day-precision vs. pattern-at-a-glance).
 const PLOT_UNITS = 320;
 const BAR_FRACTION = 0.62;
+const SEGMENT_GAP = 2;
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -50,6 +48,28 @@ function niceMax(maxSeconds: number): number {
     if (maxSeconds <= step) return step;
   }
   return Math.ceil(maxSeconds / 14400) * 14400;
+}
+
+const categoryKey = (c: { categoryId: number | null }) => c.categoryId ?? "uncategorized";
+
+/** Fixed stacking order (by category id) rather than the API's seconds-descending order —
+ *  a stacked chart needs every day to stack the same category in the same band, so a given
+ *  category's trend is trackable across days; sorting by that day's seconds would reshuffle
+ *  the bands day to day. */
+function sortForStacking(cats: CategorySeconds[]): CategorySeconds[] {
+  return [...cats].sort((a, b) => (a.categoryId ?? Infinity) - (b.categoryId ?? Infinity));
+}
+
+/** Every category appearing anywhere in the visible range, in stacking order — the legend. */
+function collectLegend(days: DayBreakdown[]): CategorySeconds[] {
+  const byKey = new Map<string | number, CategorySeconds>();
+  for (const day of days) {
+    for (const cat of day.categories) {
+      const key = categoryKey(cat);
+      if (!byKey.has(key)) byKey.set(key, cat);
+    }
+  }
+  return sortForStacking([...byKey.values()]);
 }
 
 interface HistoryProps {
@@ -99,6 +119,8 @@ export function History({ onAuthError }: HistoryProps) {
   const barW = slot * BAR_FRACTION;
   const viewBoxW = PLOT_UNITS + AXIS_W;
   const active = activeIndex !== null ? days[activeIndex] : undefined;
+  const legend = collectLegend(days);
+  const showLegend = legend.length > 1;
 
   return (
     <div className="min-h-screen bg-slate-950 px-5 pb-10 pt-8 text-slate-100">
@@ -154,29 +176,63 @@ export function History({ onAuthError }: HistoryProps) {
 
               {days.map((day, i) => {
                 const isToday = day.date === todayStr;
-                const h = maxSeconds > 0 ? (day.totalSeconds / maxSeconds) * CHART_H : 0;
                 const x = AXIS_W + i * slot + (slot - barW) / 2;
-                const y = TOP_PAD + CHART_H - h;
+                const totalH = maxSeconds > 0 ? (day.totalSeconds / maxSeconds) * CHART_H : 0;
                 const isActive = activeIndex === i;
-                const showLabel = mode === "week" || isToday || i % 5 === 0;
+                const showDayLabel = mode === "week" || isToday || i % 5 === 0;
+                const clipId = `bar-clip-${i}`;
+
+                let cumulative = 0;
+                const segments = sortForStacking(day.categories)
+                  .filter((cat) => cat.seconds > 0)
+                  .map((cat) => {
+                    const segH = maxSeconds > 0 ? (cat.seconds / maxSeconds) * CHART_H : 0;
+                    const y = TOP_PAD + CHART_H - cumulative - segH;
+                    cumulative += segH;
+                    return { key: categoryKey(cat), color: cat.categoryColor, y, height: segH };
+                  });
+
                 return (
-                  <g
-                    key={day.date}
-                    onClick={() => setActiveIndex(isActive ? null : i)}
-                    className="cursor-pointer"
-                  >
+                  <g key={day.date} onClick={() => setActiveIndex(isActive ? null : i)} className="cursor-pointer">
                     {/* hit target bigger than the bar itself, per interaction spec */}
                     <rect x={AXIS_W + i * slot} y={TOP_PAD} width={slot} height={CHART_H} fill="transparent" />
-                    <rect
-                      x={x}
-                      y={y}
-                      width={barW}
-                      height={Math.max(h, day.totalSeconds > 0 ? 2 : 0)}
-                      rx={4}
-                      fill={isToday ? BAR_COLOR_TODAY : BAR_COLOR}
-                      opacity={isActive ? 1 : 0.85}
-                    />
-                    {showLabel && (
+
+                    {/* clip to a rounded-top pill so only the outer edges of the stack are
+                        rounded, not every internal segment */}
+                    <clipPath id={clipId}>
+                      <rect
+                        x={x}
+                        y={TOP_PAD + CHART_H - totalH}
+                        width={barW}
+                        height={Math.max(totalH, day.totalSeconds > 0 ? 2 : 0)}
+                        rx={4}
+                      />
+                    </clipPath>
+                    <g clipPath={`url(#${clipId})`}>
+                      {segments.map((seg) => (
+                        <rect
+                          key={seg.key}
+                          x={x}
+                          y={seg.y}
+                          width={barW}
+                          height={seg.height}
+                          fill={seg.color}
+                          opacity={isActive ? 1 : 0.85}
+                        />
+                      ))}
+                      {segments.slice(0, -1).map((seg) => (
+                        <rect
+                          key={`gap-${seg.key}`}
+                          x={x}
+                          y={seg.y - SEGMENT_GAP / 2}
+                          width={barW}
+                          height={SEGMENT_GAP}
+                          fill={SURFACE}
+                        />
+                      ))}
+                    </g>
+
+                    {showDayLabel && (
                       <text
                         x={x + barW / 2}
                         y={TOP_PAD + CHART_H + 14}
@@ -197,6 +253,17 @@ export function History({ onAuthError }: HistoryProps) {
               )}
             </svg>
           </div>
+
+          {showLegend && (
+            <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+              {legend.map((cat) => (
+                <div key={categoryKey(cat)} className="flex items-center gap-1.5 text-xs">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.categoryColor }} />
+                  <span className="text-slate-400">{cat.categoryName}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <p className="mt-4 text-center text-xs text-slate-600">Tap a bar for that day's total. Today is still counting.</p>
         </>

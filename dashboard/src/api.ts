@@ -1,5 +1,16 @@
+export interface CategorySeconds {
+  categoryId: number | null;
+  categoryName: string;
+  categoryColor: string;
+  seconds: number;
+}
+
 export interface AppSeconds {
   exe: string;
+  displayName: string;
+  categoryId: number | null;
+  categoryName: string;
+  categoryColor: string;
   seconds: number;
 }
 
@@ -8,18 +19,32 @@ export interface SummaryResponse {
   to: number;
   totalSeconds: number;
   apps: AppSeconds[];
+  categories: CategorySeconds[];
 }
 
 export interface DayBreakdown {
   date: string;
   totalSeconds: number;
   apps: AppSeconds[];
+  categories: CategorySeconds[];
 }
 
 export interface RangeResponse {
   from: string;
   to: string;
   days: DayBreakdown[];
+}
+
+export interface App {
+  exe: string;
+  displayName: string;
+  categoryId: number | null;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  color: string;
 }
 
 const TOKEN_KEY = "screentime_dashboard_token";
@@ -47,6 +72,11 @@ export function getTodayRange(): { from: number; to: number } {
   };
 }
 
+/** Local calendar date (YYYY-MM-DD) for `when` in the viewer's own timezone. */
+export function localDateString(when: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(when);
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -56,10 +86,15 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string): Promise<T> {
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken();
   const res = await fetch(path, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    ...init,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
   });
 
   if (res.status === 401) {
@@ -67,7 +102,8 @@ async function apiFetch<T>(path: string): Promise<T> {
     throw new ApiError(401, "Invalid or missing dashboard token");
   }
   if (!res.ok) {
-    throw new ApiError(res.status, `Request failed: ${res.status}`);
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, body?.error ?? `Request failed: ${res.status}`);
   }
   return res.json() as Promise<T>;
 }
@@ -76,11 +112,33 @@ export function fetchSummary(from: number, to: number): Promise<SummaryResponse>
   return apiFetch<SummaryResponse>(`/api/v1/summary?from=${from}&to=${to}`);
 }
 
-/** Local calendar date (YYYY-MM-DD) for `when` in the viewer's own timezone. */
-export function localDateString(when: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(when);
-}
-
 export function fetchRange(from: string, to: string): Promise<RangeResponse> {
   return apiFetch<RangeResponse>(`/api/v1/range?from=${from}&to=${to}`);
+}
+
+export function fetchApps(): Promise<{ apps: App[] }> {
+  return apiFetch<{ apps: App[] }>("/api/v1/apps");
+}
+
+export function patchApp(exe: string, patch: { displayName?: string; categoryId?: number | null }): Promise<App> {
+  return apiFetch<App>(`/api/v1/apps/${encodeURIComponent(exe)}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function fetchCategories(): Promise<{ categories: Category[] }> {
+  return apiFetch<{ categories: Category[] }>("/api/v1/categories");
+}
+
+export function createCategory(name: string, color: string): Promise<Category> {
+  return apiFetch<Category>("/api/v1/categories", { method: "POST", body: JSON.stringify({ name, color }) });
+}
+
+export function patchCategory(id: number, patch: { name?: string; color?: string }): Promise<Category> {
+  return apiFetch<Category>(`/api/v1/categories/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+
+export function deleteCategory(id: number): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>(`/api/v1/categories/${id}`, { method: "DELETE" });
 }

@@ -16,3 +16,18 @@ CREATE TABLE IF NOT EXISTS daily_rollups (
   seconds BIGINT NOT NULL,
   PRIMARY KEY (date, exe)
 );
+
+CREATE TABLE IF NOT EXISTS categories (
+  id    SERIAL PRIMARY KEY,
+  name  TEXT NOT NULL,
+  color TEXT NOT NULL
+);
+
+-- Auto-registered the first time an exe is seen in an uploaded slice (display_name
+-- and category_id are then user-editable via PATCH /api/v1/apps/:exe without being
+-- overwritten by later uploads of the same exe — see routes/slices.ts).
+CREATE TABLE IF NOT EXISTS apps (
+  exe          TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL,
+  category_id  INTEGER REFERENCES categories(id) ON DELETE SET NULL
+);

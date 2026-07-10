@@ -57,19 +57,52 @@ export function Today({ onAuthError }: TodayProps) {
 
   const total = summary?.totalSeconds ?? 0;
   const apps = summary?.apps ?? [];
+  const categories = summary?.categories ?? [];
   const maxSeconds = apps.length > 0 ? apps[0].seconds : 1;
+  // A single bucket (everything uncategorized, or one category covering all of today)
+  // needs no part-to-whole breakdown — the per-app list below already shows it.
+  const showCategoryBreakdown = categories.length > 1;
 
   return (
     <div className="min-h-screen bg-slate-950 px-5 pb-10 pt-8 text-slate-100">
       <h1 className="text-sm font-medium uppercase tracking-wide text-slate-500">Today</h1>
       <p className="mt-1 text-5xl font-semibold tabular-nums">{formatDuration(total)}</p>
 
+      {showCategoryBreakdown && (
+        <div className="mt-6">
+          <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
+            {categories.map((cat, i) => (
+              <div
+                key={cat.categoryId ?? "uncategorized"}
+                style={{
+                  width: `${(cat.seconds / total) * 100}%`,
+                  backgroundColor: cat.categoryColor,
+                  marginRight: i < categories.length - 1 ? 2 : 0,
+                }}
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            {categories.map((cat) => (
+              <div key={cat.categoryId ?? "uncategorized"} className="flex items-center gap-1.5 text-xs">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.categoryColor }} />
+                <span className="text-slate-300">{cat.categoryName}</span>
+                <span className="tabular-nums text-slate-500">{formatDuration(cat.seconds)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-8 space-y-3">
         {apps.length === 0 && <p className="text-sm text-slate-500">No activity tracked yet today.</p>}
         {apps.map((app) => (
           <div key={app.exe}>
             <div className="mb-1 flex items-baseline justify-between text-sm">
-              <span className="font-medium text-slate-200">{app.exe}</span>
+              <span className="flex items-center gap-1.5 font-medium text-slate-200">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: app.categoryColor }} />
+                {app.displayName}
+              </span>
               <span className="tabular-nums text-slate-400">{formatDuration(app.seconds)}</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-slate-800">
