@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using ScreenTime.Agent.Config;
 using ScreenTime.Agent.Storage;
 using ScreenTime.Agent.Tracking;
+using ScreenTime.Agent.Upload;
 
 var config = AgentConfig.LoadOrCreate();
 
@@ -15,6 +16,21 @@ var recovered = store.CloseOrphanedOpenSlices();
 if (recovered > 0)
 {
     Log($"Recovered {recovered} open slice(s) left over from a previous run (crash or force-kill).");
+}
+
+SliceUploader? uploader = null;
+if (!string.IsNullOrWhiteSpace(config.ApiUrl) && !string.IsNullOrWhiteSpace(config.DeviceToken))
+{
+    uploader = new SliceUploader(
+        http: new HttpClient(),
+        apiUrl: config.ApiUrl,
+        deviceToken: config.DeviceToken,
+        deviceId: config.DeviceId,
+        healthyInterval: TimeSpan.FromSeconds(config.UploadIntervalSec));
+}
+else
+{
+    Log("No ApiUrl/DeviceToken configured — running offline-only (local queue will grow until configured).");
 }
 
 var tracker = new ActivityTracker(
@@ -105,6 +121,17 @@ while (running && await timer.WaitForNextTickAsync())
         var idleSec = tracker.LastIdleMs / 1000.0;
         var state = tracker.IsLocked ? "LOCKED" : open is not null ? "active" : "AFK";
         Log($"  ... [{state}] idle={idleSec:F0}s (afk-threshold={config.IdleThresholdSec}s) focus={open?.DisplayName ?? "(none)"}");
+    }
+
+    if (uploader is not null && uploader.ShouldAttempt(DateTimeOffset.UtcNow))
+    {
+        var result = await uploader.TryUploadAsync(store, CancellationToken.None);
+        if (result.Attempted)
+        {
+            Log(result.Ok
+                ? $"UPLOAD  sent {result.Count} slice(s) to server"
+                : $"UPLOAD  failed ({result.Error}) - backing off");
+        }
     }
 }
 

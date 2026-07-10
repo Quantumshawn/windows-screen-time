@@ -6,6 +6,7 @@ public sealed class AgentConfig
 {
     public string ApiUrl { get; set; } = "";
     public string DeviceToken { get; set; } = "";
+    public string DeviceId { get; set; } = "desktop";
     public int IdleThresholdSec { get; set; } = 120;
     public int SampleIntervalMs { get; set; } = 1000;
     public int UploadIntervalSec { get; set; } = 60;
