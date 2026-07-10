@@ -1,5 +1,4 @@
 import type { MiddlewareHandler } from "hono";
-import type { Env } from "./types";
 
 function bearerToken(header: string | undefined): string | null {
   if (!header?.startsWith("Bearer ")) return null;
@@ -18,11 +17,11 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Requires a Bearer token matching the given env secret (DEVICE_TOKEN or DASHBOARD_TOKEN). */
-export function requireToken(envKey: "DEVICE_TOKEN" | "DASHBOARD_TOKEN"): MiddlewareHandler<{ Bindings: Env }> {
+/** Requires a Bearer token matching the given env var (DEVICE_TOKEN or DASHBOARD_TOKEN). */
+export function requireToken(envKey: "DEVICE_TOKEN" | "DASHBOARD_TOKEN"): MiddlewareHandler {
   return async (c, next) => {
     const token = bearerToken(c.req.header("Authorization"));
-    const expected = c.env[envKey];
+    const expected = process.env[envKey];
     if (!token || !expected || !timingSafeEqual(token, expected)) {
       return c.json({ error: "unauthorized" }, 401);
     }

@@ -1,19 +1,19 @@
 import type { Context } from "hono";
-import type { Env } from "../types";
+import { query } from "../_lib/db.js";
 
-interface AppSeconds {
+interface AppSecondsRow {
   exe: string;
-  seconds: number;
+  seconds: string; // Postgres SUM() over BIGINT returns NUMERIC, which `pg` maps to string
 }
 
 /**
  * GET /api/v1/summary?from=<unix>&to=<unix> — total + per-app seconds of overlap between
  * each slice and the requested window. Takes explicit unix-second bounds rather than a
- * calendar date: the Worker has no opinion on timezone, the caller (dashboard, running in
+ * calendar date: the API has no opinion on timezone, the caller (dashboard, running in
  * the browser) does. Overlap (not whole-slice duration) correctly handles slices that only
  * partially fall inside the window, e.g. a still-open slice or one spanning midnight.
  */
-export async function handleGetSummary(c: Context<{ Bindings: Env }>) {
+export async function handleGetSummary(c: Context) {
   const from = Number(c.req.query("from"));
   const to = Number(c.req.query("to"));
 
@@ -21,18 +21,18 @@ export async function handleGetSummary(c: Context<{ Bindings: Env }>) {
     return c.json({ error: "from/to query params must be unix seconds with to > from" }, 400);
   }
 
-  const { results } = await c.env.DB.prepare(
+  const rows = await query<AppSecondsRow>(
     `SELECT exe,
-            SUM(MAX(0, MIN(end_ts, ?2) - MAX(start_ts, ?1))) AS seconds
+            SUM(GREATEST(0, LEAST(end_ts, $2) - GREATEST(start_ts, $1))) AS seconds
      FROM slices
-     WHERE end_ts > ?1 AND start_ts < ?2
+     WHERE end_ts > $1 AND start_ts < $2
      GROUP BY exe
      ORDER BY seconds DESC`,
-  )
-    .bind(from, to)
-    .all<AppSeconds>();
+    [from, to],
+  );
 
-  const totalSeconds = results.reduce((sum, r) => sum + r.seconds, 0);
+  const apps = rows.map((r) => ({ exe: r.exe, seconds: Number(r.seconds) }));
+  const totalSeconds = apps.reduce((sum, r) => sum + r.seconds, 0);
 
-  return c.json({ from, to, totalSeconds, apps: results });
+  return c.json({ from, to, totalSeconds, apps });
 }

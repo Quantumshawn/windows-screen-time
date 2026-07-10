@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { Env } from "../types";
+import { query } from "../_lib/db.js";
 
 interface IncomingSlice {
   id: string;
@@ -34,7 +34,7 @@ function isValidSlice(s: unknown, nowSec: number): s is IncomingSlice {
 }
 
 /** POST /api/v1/slices — batch upsert, keyed by client-generated slice id (idempotent). */
-export async function handlePostSlices(c: Context<{ Bindings: Env }>) {
+export async function handlePostSlices(c: Context) {
   const body = await c.req.json<SlicesRequestBody>().catch(() => null);
   if (!body || !body.deviceId || !Array.isArray(body.slices)) {
     return c.json({ error: "invalid body: expected { deviceId, slices[] }" }, 400);
@@ -47,13 +47,19 @@ export async function handlePostSlices(c: Context<{ Bindings: Env }>) {
     return c.json({ accepted: 0 });
   }
 
-  const stmt = c.env.DB.prepare(
-    `INSERT INTO slices (id, device_id, exe, start_ts, end_ts)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET end_ts = excluded.end_ts`,
-  );
+  const values: unknown[] = [];
+  const placeholders = valid.map((s, i) => {
+    const base = i * 5;
+    values.push(s.id, body.deviceId, s.exe, s.start, s.end);
+    return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+  });
 
-  await c.env.DB.batch(valid.map((s) => stmt.bind(s.id, body.deviceId, s.exe, s.start, s.end)));
+  await query(
+    `INSERT INTO slices (id, device_id, exe, start_ts, end_ts)
+     VALUES ${placeholders.join(", ")}
+     ON CONFLICT (id) DO UPDATE SET end_ts = excluded.end_ts`,
+    values,
+  );
 
   return c.json({ accepted: valid.length });
 }
