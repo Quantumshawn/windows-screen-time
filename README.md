@@ -38,8 +38,15 @@ with Windows**, and **Exit**. Logs rotate daily under
 The `dashboard/` folder is the Vercel project root (it serves both the static
 PWA and the `/api` routes from one origin — no CORS to configure). Deploy it to
 Vercel, add a Postgres database from Vercel's Storage/Marketplace tab (or any
-external free-tier Postgres — `DATABASE_URL` is all it needs), run
-`dashboard/db/schema.sql` against it once, and set these environment variables:
+external free-tier Postgres — `DATABASE_URL` is all it needs), apply the schema
+(safe to re-run anytime — it's all `CREATE TABLE IF NOT EXISTS`):
+
+```
+cd dashboard
+DATABASE_URL="<your production connection string>" node scripts/apply-schema.mjs
+```
+
+and set these environment variables:
 
 | Variable | Required | Notes |
 |---|---|---|
