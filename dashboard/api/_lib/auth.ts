@@ -28,3 +28,21 @@ export function requireToken(envKey: "DEVICE_TOKEN" | "DASHBOARD_TOKEN"): Middle
     await next();
   };
 }
+
+/**
+ * Requires Vercel's own `Authorization: Bearer $CRON_SECRET` header, which Vercel attaches
+ * automatically to its scheduled invocations once CRON_SECRET is configured. Unlike
+ * requireToken, this is permissive when CRON_SECRET isn't set at all — that's the local-dev
+ * and not-yet-deployed state, where the rollup endpoint is harmless to call unprotected
+ * (idempotent recompute of existing data, no sensitive response body).
+ */
+export const requireCronSecret: MiddlewareHandler = async (c, next) => {
+  const expected = process.env.CRON_SECRET;
+  if (expected) {
+    const token = bearerToken(c.req.header("Authorization"));
+    if (!token || !timingSafeEqual(token, expected)) {
+      return c.json({ error: "unauthorized" }, 401);
+    }
+  }
+  await next();
+};

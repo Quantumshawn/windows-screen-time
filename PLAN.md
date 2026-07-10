@@ -204,6 +204,8 @@ Note on overlap queries: SQLite's `MIN(a,b)`/`MAX(a,b)` (row-wise, 2-arg form) b
 ### 4.4 Cron jobs
 
 - **Nightly (00:30 local):** roll up yesterday's slices into `daily_rollups`, splitting midnight-spanning slices; slices older than 90 days can then be pruned (rollups keep the history forever at ~10 rows/day). Configured via `vercel.json`'s `crons` array. Vercel Hobby (free tier) allows cron jobs but caps invocation frequency to once per day — a nightly rollup fits that exactly; if a more frequent cron is ever needed, that requires a paid Vercel plan.
+- **Timezone, for now:** day-boundary math (rollup + the live "today" portion of `/range`) reads a `TIMEZONE` env var (IANA name, e.g. `America/New_York`; defaults to `UTC`), not the `settings.timezone` row sketched in §4.3 — full settings CRUD hasn't been built yet (still Phase 5/6 scope). **Set `TIMEZONE` at deploy time**, and note `vercel.json`'s cron `schedule` is always in **UTC** — `"30 0 * * *"` is a placeholder (00:30 UTC); adjust it to land at ~00:30 in your actual timezone, or just leave it — the rollup is idempotent and only cares about *which* date it's given, not when it runs. When settings CRUD lands, decide then whether `TIMEZONE` moves into the database (editable without a redeploy) or stays an env var — either works, nothing built so far depends on which.
+- **Backfill/manual trigger:** `GET /api/cron/rollup?date=YYYY-MM-DD` re-materializes any single day on demand (used for testing; also the recovery path if a scheduled run is ever missed).
 
 ### 4.5 Daily-limit push flow
 
@@ -252,9 +254,16 @@ Postgres schema + `POST /slices` + `GET /summary`; agent uploader with backoff; 
 Today view, token entry, manifest + service worker; Add to Home Screen on the iPhone.
 *Done when:* Icon on your home screen opens to today's live screen time.
 
-**Phase 4 — History & rollups (~1–2 evenings)**
+**Phase 4 — History & rollups (~1–2 evenings)** ✅ built
 Nightly cron rollups, midnight splitting, `range` endpoint, week/month charts.
-*Done when:* Week view shows correct per-day stacks after a few days of data.
+*Done when:* Week view shows correct per-day totals after a few days of data.
+
+Chart is a single-series bar (one flat color, no legend) rather than stacked by app: exe names are open-ended cardinality with no natural fixed order, which is exactly what the dataviz method's series-count ladder says *not* to force into a stack — that treatment is right for **categories** (Phase 5's small, fixed, meaningful set), not raw app names. Revisit stacking when categories exist.
+
+Caught only by actually running it (three real bugs, not just review):
+- `db/schema.sql` never defined `daily_rollups` — documented in this plan, never in the real migration file. Every rollup call 500'd until seeded with real data exposed it.
+- `/range` only returned dates that had matching rows, so an all-zero day (PC off all day) silently vanished from the response instead of showing a zero bar — would have quietly compressed the x-axis.
+- The topmost gridline's label had no headroom in the SVG viewBox and rendered clipped — only visible by actually screenshotting the chart, exactly per the dataviz skill's "render it and look at it" step.
 
 **Phase 5 — Categories (~1 evening)**
 Categories CRUD, app assignment UI, category colors flow into all charts.

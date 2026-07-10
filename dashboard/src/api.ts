@@ -10,6 +10,18 @@ export interface SummaryResponse {
   apps: AppSeconds[];
 }
 
+export interface DayBreakdown {
+  date: string;
+  totalSeconds: number;
+  apps: AppSeconds[];
+}
+
+export interface RangeResponse {
+  from: string;
+  to: string;
+  days: DayBreakdown[];
+}
+
 const TOKEN_KEY = "screentime_dashboard_token";
 
 export function getStoredToken(): string | null {
@@ -62,4 +74,13 @@ async function apiFetch<T>(path: string): Promise<T> {
 
 export function fetchSummary(from: number, to: number): Promise<SummaryResponse> {
   return apiFetch<SummaryResponse>(`/api/v1/summary?from=${from}&to=${to}`);
+}
+
+/** Local calendar date (YYYY-MM-DD) for `when` in the viewer's own timezone. */
+export function localDateString(when: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(when);
+}
+
+export function fetchRange(from: string, to: string): Promise<RangeResponse> {
+  return apiFetch<RangeResponse>(`/api/v1/range?from=${from}&to=${to}`);
 }
