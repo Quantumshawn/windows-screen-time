@@ -1,10 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, fetchRange, localDateString, type CategorySeconds, type DayBreakdown, type RangeResponse } from "../api";
+import {
+  ApiError,
+  fetchRange,
+  formatDuration,
+  localDateString,
+  type CategorySeconds,
+  type DayBreakdown,
+  type RangeResponse,
+} from "../api";
 
 type RangeMode = "week" | "month";
 
-const SURFACE = "#020617"; // tailwind slate-950 — matches the page background exactly,
-// used to paint the 2px gap between stacked segments (the gap IS this color, not transparency)
+// The chart sits in an opaque card (not the translucent `.surface` treatment the rest of the
+// app uses) specifically so this can be an exact, known solid color — it paints the 2px gap
+// between stacked segments as a real rect (the gap IS this color, not transparency), which
+// only works if the card behind it is a flat, precisely-matched fill, not a glassy overlay.
+const CARD_BG = "#0f172a"; // tailwind slate-900
+const SURFACE = CARD_BG;
 const GRID_COLOR = "#2c2c2a";
 const MUTED_TEXT = "#898781";
 const TODAY_TEXT = "#c7d2fe";
@@ -21,13 +33,6 @@ const GRID_FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
 const PLOT_UNITS = 320;
 const BAR_FRACTION = 0.62;
 const SEGMENT_GAP = 2;
-
-function formatDuration(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  if (h === 0) return `${m}m`;
-  return `${h}h ${m}m`;
-}
 
 function formatAxisLabel(seconds: number): string {
   if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
@@ -121,32 +126,46 @@ export function History({ onAuthError }: HistoryProps) {
   const active = activeIndex !== null ? days[activeIndex] : undefined;
   const legend = collectLegend(days);
   const showLegend = legend.length > 1;
+  const periodTotal = days.reduce((sum, d) => sum + d.totalSeconds, 0);
+  const periodAvg = days.length > 0 ? periodTotal / days.length : 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 px-5 pb-10 pt-8 text-slate-100">
-      <div className="flex items-center justify-between">
-        <h1 className="text-sm font-medium uppercase tracking-wide text-slate-500">History</h1>
-        <div className="flex rounded-lg bg-slate-900 p-1 text-xs">
+    <div className="min-h-screen px-5 pb-10 pt-8 text-slate-100">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">History</p>
+          {!loading && !error && (
+            <p className="mt-0.5 text-sm text-slate-400">
+              <span className="tabular-nums text-slate-200">{formatDuration(periodTotal)}</span> total ·{" "}
+              <span className="tabular-nums">{formatDuration(periodAvg)}</span>/day avg
+            </p>
+          )}
+        </div>
+        <div className="flex rounded-full bg-white/5 p-1 text-xs">
           {(["week", "month"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`rounded-md px-3 py-1.5 font-medium capitalize transition-colors ${
-                mode === m ? "bg-indigo-600 text-white" : "text-slate-400"
+              className={`rounded-full px-3.5 py-1.5 font-medium capitalize transition-colors ${
+                mode === m ? "bg-indigo-500 text-white" : "text-slate-400"
               }`}
             >
               {m}
             </button>
           ))}
         </div>
-      </div>
+      </header>
 
-      {loading && <p className="mt-8 text-sm text-slate-500">Loading…</p>}
+      {loading && (
+        <div className="mt-8 flex justify-center">
+          <span className="animate-pulse text-sm text-slate-500">Loading…</span>
+        </div>
+      )}
 
       {error && !loading && (
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <p className="text-red-400">{error}</p>
-          <button onClick={() => load(mode)} className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-200">
+          <button onClick={() => load(mode)} className="rounded-full bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-200">
             Retry
           </button>
         </div>
@@ -154,7 +173,7 @@ export function History({ onAuthError }: HistoryProps) {
 
       {!loading && !error && (
         <>
-          <div className="mt-6">
+          <div className="mt-4 rounded-3xl border border-white/[0.06] p-4 pb-2 shadow-[0_1px_2px_rgba(0,0,0,0.3)]" style={{ backgroundColor: CARD_BG }}>
             <svg
               viewBox={`0 0 ${viewBoxW} ${TOP_PAD + CHART_H + 24}`}
               width="100%"
@@ -252,18 +271,18 @@ export function History({ onAuthError }: HistoryProps) {
                 <ChartTooltip day={active} x={AXIS_W + (activeIndex ?? 0) * slot + slot / 2} viewBoxW={viewBoxW} />
               )}
             </svg>
-          </div>
 
-          {showLegend && (
-            <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
-              {legend.map((cat) => (
-                <div key={categoryKey(cat)} className="flex items-center gap-1.5 text-xs">
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.categoryColor }} />
-                  <span className="text-slate-400">{cat.categoryName}</span>
-                </div>
-              ))}
-            </div>
-          )}
+            {showLegend && (
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 pb-3">
+                {legend.map((cat) => (
+                  <div key={categoryKey(cat)} className="flex items-center gap-1.5 text-xs">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cat.categoryColor }} />
+                    <span className="text-slate-400">{cat.categoryName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <p className="mt-4 text-center text-xs text-slate-600">Tap a bar for that day's total. Today is still counting.</p>
         </>

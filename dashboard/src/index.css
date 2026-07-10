@@ -9,6 +9,19 @@ body,
 body {
   margin: 0;
   background-color: #020617;
+  /* A faint glow anchored behind the hero content — pure depth, never bright enough to
+     compete with data. Fixed so it doesn't reflow/scroll with page content. */
+  background-image: radial-gradient(ellipse 600px 400px at 50% -10%, rgba(99, 102, 241, 0.16), transparent 70%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+}
+
+/* Shared card surface — layered above the page glow, used by every grouped section. */
+.surface {
+  background-color: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }

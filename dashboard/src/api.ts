@@ -72,6 +72,14 @@ export function getTodayRange(): { from: number; to: number } {
   };
 }
 
+export function formatDuration(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 /** Local calendar date (YYYY-MM-DD) for `when` in the viewer's own timezone. */
 export function localDateString(when: Date): string {
   return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(when);
