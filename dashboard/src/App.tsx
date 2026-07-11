@@ -32,7 +32,7 @@ export default function App() {
       {/* Desktop sidebar */}
       <aside className="sidebar" aria-label="Sidebar">
         <div className="mb-6 flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400/30 to-indigo-600/15 text-indigo-300 ring-1 ring-indigo-400/25">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400/30 to-sky-600/15 text-sky-300 ring-1 ring-sky-400/25">
             <ClockIcon className="h-5 w-5" />
           </div>
           <div>
@@ -52,7 +52,7 @@ export default function App() {
                 className={`sidebar-nav-btn ${active ? "sidebar-nav-btn-active" : ""}`}
                 aria-current={active ? "page" : undefined}
               >
-                <tab.Icon className={`h-5 w-5 shrink-0 ${active ? "text-indigo-300" : ""}`} />
+                <tab.Icon className={`h-5 w-5 shrink-0 ${active ? "text-sky-300" : ""}`} />
                 {tab.label}
               </button>
             );
@@ -86,8 +86,8 @@ export default function App() {
                 className={`dock-tab ${active ? "dock-tab-active" : ""}`}
                 aria-current={active ? "page" : undefined}
               >
-                <tab.Icon className={`h-5 w-5 ${active ? "text-indigo-300" : ""}`} />
-                <span className={`text-[10px] font-semibold tracking-wide ${active ? "text-indigo-200" : ""}`}>
+                <tab.Icon className={`h-5 w-5 ${active ? "text-sky-300" : ""}`} />
+                <span className={`text-[10px] font-semibold tracking-wide ${active ? "text-sky-200" : ""}`}>
                   {tab.label}
                 </span>
               </button>

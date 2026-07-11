@@ -11,11 +11,11 @@ import {
 
 type RangeMode = "week" | "month";
 
-const CARD_BG = "#0e1118";
+const CARD_BG = "#0a1220";
 const SURFACE = CARD_BG;
-const GRID_COLOR = "rgba(255,255,255,0.06)";
+const GRID_COLOR = "rgba(125,211,252,0.08)";
 const MUTED_TEXT = "#6b7280";
-const TODAY_TEXT = "#c7d2fe";
+const TODAY_TEXT = "#7dd3fc";
 
 const CHART_H = 168;
 const CHART_H_DESKTOP = 240;
@@ -163,7 +163,7 @@ export function History({ onAuthError }: HistoryProps) {
               onClick={() => setMode(m)}
               className={`min-h-9 rounded-full px-4 py-2 text-xs font-semibold capitalize transition-all active:scale-95 lg:min-h-10 lg:px-5 lg:text-sm ${
                 mode === m
-                  ? "bg-gradient-to-b from-indigo-400 to-indigo-500 text-white shadow-[0_4px_14px_-4px_rgba(99,102,241,0.7)]"
+                  ? "bg-gradient-to-b from-sky-400 to-sky-600 text-slate-950 shadow-[0_4px_18px_-4px_rgba(14,165,233,0.85)]"
                   : "text-slate-400"
               }`}
             >
@@ -195,7 +195,7 @@ export function History({ onAuthError }: HistoryProps) {
 
       {loading && (
         <div className="mt-16 flex flex-col items-center gap-3">
-          <div className="h-9 w-9 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin" />
+          <div className="h-9 w-9 rounded-full border-2 border-sky-400/30 border-t-sky-400 animate-spin" />
           <span className="animate-pulse-soft text-sm text-slate-500">Loading chart…</span>
         </div>
       )}
@@ -284,7 +284,7 @@ export function History({ onAuthError }: HistoryProps) {
                         y={TOP_PAD}
                         width={slot - 2}
                         height={chartH}
-                        fill="rgba(129,140,248,0.06)"
+                        fill="rgba(56,189,248,0.06)"
                         rx={6}
                       />
                     )}
@@ -419,7 +419,7 @@ function DayDetail({ day, compact }: { day: DayBreakdown; compact?: boolean }) {
             day: "numeric",
           })}
         </p>
-        <p className={`num font-bold text-indigo-200 ${compact ? "text-sm" : "text-lg"}`}>
+        <p className={`num font-bold text-sky-200 ${compact ? "text-sm" : "text-lg"}`}>
           {formatDuration(day.totalSeconds)}
         </p>
       </div>
@@ -485,8 +485,8 @@ function ChartTooltip({ day, x, viewBoxW }: { day: DayBreakdown; x: number; view
 
   return (
     <g pointerEvents="none">
-      <rect x={boxX} y={2} width={boxW} height={22} rx={7} fill="#12151e" stroke="rgba(129,140,248,0.25)" />
-      <text x={boxX + boxW / 2} y={17} textAnchor="middle" fontSize={10} fill="#e0e7ff" fontWeight={600}>
+      <rect x={boxX} y={2} width={boxW} height={22} rx={7} fill="#0a1220" stroke="rgba(56,189,248,0.35)" />
+      <text x={boxX + boxW / 2} y={17} textAnchor="middle" fontSize={10} fill="#e0f2fe" fontWeight={600}>
         {text}
       </text>
     </g>

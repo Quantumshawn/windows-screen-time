@@ -124,7 +124,7 @@ export function Settings({ onAuthError }: SettingsProps) {
     return (
       <div className="page page-center text-slate-100">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-9 w-9 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin" />
+          <div className="h-9 w-9 rounded-full border-2 border-sky-400/30 border-t-sky-400 animate-spin" />
           <span className="animate-pulse-soft text-sm text-slate-500">Loading settings…</span>
         </div>
       </div>
@@ -287,7 +287,7 @@ function formatMinutes(totalMinutes: number): string {
 function SectionHeader({ icon, title }: { icon?: ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2 text-slate-400">
-      {icon && <span className="text-indigo-300/80">{icon}</span>}
+      {icon && <span className="text-sky-300/80">{icon}</span>}
       <h2 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em]">{title}</h2>
     </div>
   );
@@ -311,7 +311,7 @@ function ToggleSwitch({
       onClick={onChange}
       className={`relative h-8 w-[3.25rem] shrink-0 rounded-full transition-all disabled:opacity-40 ${
         checked
-          ? "bg-gradient-to-b from-indigo-400 to-indigo-500 shadow-[0_0_16px_-2px_rgba(99,102,241,0.7)]"
+          ? "bg-gradient-to-b from-sky-400 to-sky-500 shadow-[0_0_16px_-2px_rgba(14,165,233,0.7)]"
           : "bg-white/10"
       }`}
     >

@@ -39,7 +39,7 @@ export function Today({ onAuthError }: TodayProps) {
     return (
       <div className="page page-center text-slate-100">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin" />
+          <div className="h-10 w-10 rounded-full border-2 border-sky-400/30 border-t-sky-400 animate-spin" />
           <span className="animate-pulse-soft text-sm text-slate-500">Gathering today…</span>
         </div>
       </div>
@@ -189,15 +189,15 @@ function TodayHero({ total, limitMinutes }: { total: number; limitMinutes: numbe
   if (limitMinutes === null) {
     return (
       <div className="surface overflow-hidden rounded-[1.75rem] px-5 py-9 text-center sm:px-6 sm:py-10 lg:px-8 lg:py-12">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(129,140,248,0.14),transparent_60%)]" />
-        <p className="relative text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-indigo-300/70">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(56,189,248,0.22),transparent_58%),radial-gradient(ellipse_at_80%_100%,rgba(34,211,238,0.08),transparent_50%)]" />
+        <p className="relative text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-sky-300/70">
           Active time
         </p>
         <p className="display-num relative mt-3 text-[3.25rem] font-bold leading-none tracking-tight min-[380px]:text-[3.75rem] lg:text-6xl">
           {formatDuration(total)}
         </p>
         <p className="relative mt-3 text-sm text-slate-500 lg:text-[15px]">focused screen time so far today</p>
-        <div className="relative mx-auto mt-6 h-px w-24 bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent" />
+        <div className="relative mx-auto mt-6 h-px w-24 bg-gradient-to-r from-transparent via-sky-400/40 to-transparent" />
       </div>
     );
   }
@@ -207,13 +207,13 @@ function TodayHero({ total, limitMinutes }: { total: number; limitMinutes: numbe
   const over = ratio >= 1;
   const progress = Math.min(1, ratio);
   const offset = RING_CIRCUMFERENCE * (1 - progress);
-  const fillColor = over ? "#fbbf24" : "#818cf8";
-  const trackColor = over ? "rgba(251, 191, 36, 0.12)" : "rgba(99, 102, 241, 0.14)";
+  const fillColor = over ? "#fbbf24" : "#38bdf8";
+  const trackColor = over ? "rgba(251, 191, 36, 0.12)" : "rgba(14, 165, 233, 0.14)";
   const remaining = Math.max(0, limitSeconds - total);
 
   return (
     <div className="surface overflow-hidden rounded-[1.75rem] px-5 py-7 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(129,140,248,0.12),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_15%,rgba(56,189,248,0.2),transparent_55%),radial-gradient(ellipse_at_20%_90%,rgba(14,165,233,0.08),transparent_45%)]" />
       <div className="relative mx-auto h-[176px] w-[176px] min-[380px]:h-[188px] min-[380px]:w-[188px] lg:h-[210px] lg:w-[210px]">
         <svg
           viewBox="0 0 160 160"
@@ -221,7 +221,7 @@ function TodayHero({ total, limitMinutes }: { total: number; limitMinutes: numbe
         >
           <defs>
             <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={over ? "#fde68a" : "#c7d2fe"} />
+              <stop offset="0%" stopColor={over ? "#fde68a" : "#bae6fd"} />
               <stop offset="100%" stopColor={fillColor} />
             </linearGradient>
           </defs>

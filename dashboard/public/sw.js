@@ -1,5 +1,5 @@
 // Bump this whenever the shell/UI changes so activate wipes stale caches.
-const CACHE_NAME = "screentime-shell-v4";
+const CACHE_NAME = "screentime-shell-v5";
 
 self.addEventListener("install", () => {
   // Activate immediately on install — don't wait for all tabs to close.
