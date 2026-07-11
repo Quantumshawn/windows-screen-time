@@ -12,9 +12,7 @@ interface AppSecondsRow {
 
 /**
  * Per-app seconds of overlap between each slice and [fromTs, toTs), left-joined with
- * category info. Category is resolved at read time (not baked into daily_rollups), so
- * re-categorizing an app immediately updates how *all* history reads — past and present —
- * rather than leaving old days frozen at whatever assignment existed when they were rolled up.
+ * category info. Hidden apps are excluded entirely (time does not count toward totals).
  */
 export async function queryAppSecondsInWindow(fromTs: number, toTs: number): Promise<AppSecondsWithCategory[]> {
   const rows = await query<AppSecondsRow>(
@@ -29,6 +27,7 @@ export async function queryAppSecondsInWindow(fromTs: number, toTs: number): Pro
      LEFT JOIN apps a ON a.exe = s.exe
      LEFT JOIN categories c ON c.id = a.category_id
      WHERE s.end_ts > $1 AND s.start_ts < $2
+       AND COALESCE(a.hidden, FALSE) = FALSE
      GROUP BY s.exe, a.display_name, a.category_id, c.name, c.color
      ORDER BY seconds DESC`,
     [fromTs, toTs],
@@ -38,9 +37,8 @@ export async function queryAppSecondsInWindow(fromTs: number, toTs: number): Pro
 }
 
 /**
- * Same shape as above but from daily_rollups across a whole date range in one round trip
- * (not one query per day — a 30-day month view would otherwise mean 30 sequential queries).
- * Returns rows tagged with their date so the caller groups them.
+ * Same shape as above but from daily_rollups across a whole date range in one round trip.
+ * Hidden apps are excluded.
  */
 export async function queryAppSecondsByRollupRange(
   fromDate: string,
@@ -60,6 +58,7 @@ export async function queryAppSecondsByRollupRange(
      LEFT JOIN apps a ON a.exe = dr.exe
      LEFT JOIN categories c ON c.id = a.category_id
      WHERE dr.date >= $1 AND dr.date <= $2 AND dr.date != $3
+       AND COALESCE(a.hidden, FALSE) = FALSE
      ORDER BY dr.date`,
     [fromDate, toDate, excludeDate],
   );
@@ -67,12 +66,14 @@ export async function queryAppSecondsByRollupRange(
   return rows.map((r) => ({ ...mapRow(r), date: r.date }));
 }
 
-/** Just the total, no per-app grouping — for the daily-limit check, which only needs one number. */
+/** Just the total, no per-app grouping — for the daily-limit check (excludes hidden apps). */
 export async function queryTotalSecondsInWindow(fromTs: number, toTs: number): Promise<number> {
   const rows = await query<{ total: string | null }>(
-    `SELECT SUM(GREATEST(0, LEAST(end_ts, $2) - GREATEST(start_ts, $1))) AS total
-     FROM slices
-     WHERE end_ts > $1 AND start_ts < $2`,
+    `SELECT SUM(GREATEST(0, LEAST(s.end_ts, $2) - GREATEST(s.start_ts, $1))) AS total
+     FROM slices s
+     LEFT JOIN apps a ON a.exe = s.exe
+     WHERE s.end_ts > $1 AND s.start_ts < $2
+       AND COALESCE(a.hidden, FALSE) = FALSE`,
     [fromTs, toTs],
   );
   return Number(rows[0]?.total ?? 0);

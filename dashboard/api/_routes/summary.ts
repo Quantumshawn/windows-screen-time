@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { applyBuiltInAppRules } from "../_lib/appRules.js";
 import { queryAppSecondsInWindow } from "../_lib/appSeconds.js";
 import { summarizeByCategory } from "../_lib/categorize.js";
 
@@ -16,6 +17,7 @@ export async function handleGetSummary(c: Context) {
     return c.json({ error: "from/to query params must be unix seconds with to > from" }, 400);
   }
 
+  await applyBuiltInAppRules();
   const apps = await queryAppSecondsInWindow(from, to);
   const categories = summarizeByCategory(apps);
   const totalSeconds = apps.reduce((sum, a) => sum + a.seconds, 0);

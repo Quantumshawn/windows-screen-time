@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { applyBuiltInAppRules } from "../_lib/appRules.js";
 import { queryAppSecondsByRollupRange, queryAppSecondsInWindow } from "../_lib/appSeconds.js";
 import { summarizeByCategory, type AppSecondsWithCategory, type CategorySeconds } from "../_lib/categorize.js";
 import { dayBoundariesUtc, localDateString } from "../_lib/time.js";
@@ -32,6 +33,7 @@ export async function handleGetRange(c: Context) {
     return c.json({ error: "from/to query params must be YYYY-MM-DD with to >= from" }, 400);
   }
 
+  await applyBuiltInAppRules();
   const todayStr = localDateString(new Date(), tz);
   const days = new Map<string, DayBreakdown>();
 

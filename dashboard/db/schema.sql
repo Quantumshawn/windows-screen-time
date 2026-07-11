@@ -29,8 +29,13 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS apps (
   exe          TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,
-  category_id  INTEGER REFERENCES categories(id) ON DELETE SET NULL
+  category_id  INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+  -- When true, excluded from Today/History totals and app lists (system noise, etc.)
+  hidden       BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+-- Existing DBs created before `hidden` existed:
+ALTER TABLE apps ADD COLUMN IF NOT EXISTS hidden BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- keys used: dailyLimitMinutes, limitAlertSentDate (internal — last local date an
 -- over-limit push was sent, so it fires at most once per day; not user-editable)

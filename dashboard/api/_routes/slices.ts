@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { query } from "../_lib/db.js";
+import { applyBuiltInAppRules, registrationFields } from "../_lib/appRules.js";
 import { checkDailyLimitAndNotify } from "../_lib/dailyLimit.js";
 
 interface IncomingSlice {
@@ -63,6 +64,7 @@ export async function handlePostSlices(c: Context) {
   );
 
   await registerNewApps(valid);
+  await applyBuiltInAppRules(true);
   await checkDailyLimitAndNotify();
 
   return c.json({ accepted: valid.length });
@@ -70,26 +72,27 @@ export async function handlePostSlices(c: Context) {
 
 /**
  * First-seen-wins registration into `apps`: an exe not seen before gets a row with a
- * default display name and no category. DO NOTHING on conflict so a user's later edits
- * (rename, category assignment) are never clobbered by a subsequent slice upload for
- * the same exe.
+ * preferred display name + hide flag. DO NOTHING on conflict so a user's later edits
+ * are never clobbered by a subsequent slice upload for the same exe (built-in renames
+ * still apply via applyBuiltInAppRules for known system/app labels).
  */
 async function registerNewApps(slices: IncomingSlice[]): Promise<void> {
-  const byExe = new Map<string, string>();
+  const byExe = new Map<string, { displayName: string; hidden: boolean }>();
   for (const s of slices) {
     if (!byExe.has(s.exe)) {
-      byExe.set(s.exe, s.displayName?.trim() || s.exe);
+      byExe.set(s.exe, registrationFields(s.exe, s.displayName));
     }
   }
 
   const values: unknown[] = [];
-  const placeholders = [...byExe.entries()].map(([exe, displayName], i) => {
-    values.push(exe, displayName);
-    return `($${i * 2 + 1}, $${i * 2 + 2})`;
+  const placeholders = [...byExe.entries()].map(([exe, fields], i) => {
+    values.push(exe, fields.displayName, fields.hidden);
+    return `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`;
   });
 
   await query(
-    `INSERT INTO apps (exe, display_name) VALUES ${placeholders.join(", ")} ON CONFLICT (exe) DO NOTHING`,
+    `INSERT INTO apps (exe, display_name, hidden) VALUES ${placeholders.join(", ")}
+     ON CONFLICT (exe) DO NOTHING`,
     values,
   );
 }
