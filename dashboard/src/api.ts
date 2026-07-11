@@ -73,8 +73,12 @@ export function getTodayRange(): { from: number; to: number } {
 }
 
 export function formatDuration(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
+  const sec = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  // Under a minute: show seconds so short sessions don't read as "0m"
+  if (h === 0 && m === 0) return `${s}s`;
   if (h === 0) return `${m}m`;
   if (m === 0) return `${h}h`;
   return `${h}h ${m}m`;
