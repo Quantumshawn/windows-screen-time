@@ -27,6 +27,7 @@ export const HIDDEN_EXES = new Set(
     "searchhost",
     "screentimeagent",
     "shellhost",
+    "shellexperiencehost",
     "gamingservicesui",
     "storeinstallbroker",
     "windowsstoreinstallbroker",
@@ -40,6 +41,7 @@ export const HIDDEN_DISPLAY_SUBSTR = [
   "store installer",
   "gaming services",
   "shellhost",
+  "shell experience host",
 ];
 
 export function preferredDisplayName(exe: string, displayName?: string): string {
